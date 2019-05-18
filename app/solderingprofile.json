@@ -1,0 +1,7 @@
+{
+ "SolderingProfile" :
+ [
+	{ "Id": "big header", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":1000, "SolderLength" : 5, "Melting": 5000 },
+	{ "Id": "small header", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":1000, "SolderLength" : 5, "Melting": 5000 }
+ ]
+}
