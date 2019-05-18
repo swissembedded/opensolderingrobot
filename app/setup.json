@@ -1,0 +1,4 @@
+{
+ "RobotPort":"/dev/ttyUSB0",
+ "CameraPort":"/dev/video0"
+}
