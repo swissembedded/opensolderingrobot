@@ -1,1 +1,2 @@
 G28 ; home all axes (X, Y, and Z)
+G90 ; use absolute positioning for the XYZ axes
