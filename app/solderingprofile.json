@@ -1,12 +1,12 @@
 {
  "SolderingProfile" :
  [
-	{ "Id": "Weidmuller Conn Term", "OffsetX" : 0.8, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 5.0, "Melting": 2000 },
-	{ "Id": "Wurth Conn Header", "OffsetX" : 0.6, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 },
-	{ "Id": "Magjack RJ45 Signals", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 },
-	{ "Id": "Magjack RJ45 Mounts", "OffsetX" : 0.85, "OffsetY" : 0.0, "Heatup":3000, "SolderLength" : 10.0, "Melting": 3000 },
-	{ "Id": "Wurth Conn Header", "OffsetX" : 0.6, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 },	
-	{ "Id": "USB Signals", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 },
-	{ "Id": "USB Mounts", "OffsetX" : 1.8, "OffsetY" : 0.0, "Heatup":3000, "SolderLength" : 10.0, "Melting": 3000 }
+	{ "Id": "Weidmuller Conn Term", "SolderOffsetX" : 0.8, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.3, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.0, "Heatup":2000, "SolderLength" : 5.0, "Melting": 2000 },
+	{ "Id": "Wurth Conn Header", "SolderOffsetX" : 0.6, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.1, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.0, "TravelZ": 50, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 },
+	{ "Id": "Magjack RJ45 Signals", "SolderOffsetX" : 0.5, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.0, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.0, "TravelZ": 50, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 },
+	{ "Id": "Magjack RJ45 Mounts", "SolderOffsetX" : 0.85, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.4, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -3.0, "TravelZ": 50, "Heatup":3000, "SolderLength" : 10.0, "Melting": 3000 },
+	{ "Id": "Wurth Conn Header", "SolderOffsetX" : 0.6, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.1, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.0, "TravelZ": 50, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 },	
+	{ "Id": "USB Signals", "SolderOffsetX" : 0.5, "SolderOffsetY" : 0.0, "ApproxOffsetX": 1.0, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.0, "TravelZ": 50, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 },
+	{ "Id": "USB Mounts", "SolderOffsetX" : 1.8, "SolderOffsetY" : 0.0, "ApproxOffsetX": 2.2, "ApproxOffsetY": 0.0, "ApproxOffsetZ": -2.5, "TravelZ": 50, "Heatup":3000, "SolderLength" : 15.0, "Melting": 3000 }
  ]
 }

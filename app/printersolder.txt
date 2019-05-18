@@ -1,0 +1,11 @@
+G1 Z%TravelZ F600 ; travel level on z
+G1 X%ApproxX Y%ApproxY F600 ; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program
+G4 P500 'wait 500ms
+G1 Z%ApproxZ F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program
+G4 P500 'wait 500ms
+G1 X%SolderX Y%SolderY Z%SolderZ F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program
+G4 P%Heatup 'wait heatup time
+G1 E%SolderLength F1000
+G4 P%Melting 'wait for solder melting on pad
+G1 X%ApproxX Y%ApproxY Z%ApproxZ F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program
+G1 Z%TravelZ F600 ; travel level on z
