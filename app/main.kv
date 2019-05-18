@@ -36,15 +36,19 @@
                         size_hint_x: 0.15 
                         mode: 'spinner'
                         ActionButton:
-                            text: 'Load Program'
-                            on_press: root.show_load()
+                            text: 'New Project'
+                            on_press: root.new_file()
                         ActionButton:
-                            text: 'Save Program'
+                            text: 'Load Project'
+                            on_press: root.load_file()
                         ActionButton:
-                            text: 'Save Program As'
-                            on_press: root.show_save()
+                            text: 'Save Project'
+                            on_press: root.save_file()
                         ActionButton:
-                            text: 'Exit Program'
+                            text: 'Save Project As'
+                            on_press: root.save_as_file()
+                        ActionButton:
+                            text: 'Exit Project'
                             on_press: app.stop()
                     ActionGroup:
                         text: 'Program'
@@ -54,15 +58,14 @@
                             text: 'Import NC Drill'
                             on_press: root.import_nc()
                         ActionButton:
+                            text: 'Select Soldering profile'
+                            on_press: root.select_profile()
+                        ActionButton:
                             text: 'Select soldering pad by diameter'
                         ActionButton:
                             text: 'Select soldering pad in view'
                         ActionButton:
                             text: 'Deselect soldering pad in view'
-                        ActionButton:
-                            text: 'Assign SolderProfile to single pad'
-                        ActionButton:
-                            text: 'Assign SolderProfile to multiple pad'
                         ActionButton:
                             text: 'Set Reference Point 1'
                         ActionButton:
@@ -212,4 +215,9 @@
             Button:
                 text: "Save"
                 on_release: root.save(filechooser.path, text_input.text)
-
+########## select soldering profile ######
+<SolderingProfile>
+    BoxLayout:
+        id: profile_list
+        orientation: 'vertical'
+        padding:8

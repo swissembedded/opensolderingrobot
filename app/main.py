@@ -30,6 +30,11 @@ from operator import sub
 from gerber.excellon import DrillHit
 from tsp_solver.greedy import solve_tsp
 
+# list view for soldering profile
+from kivy.adapters.listadapter import ListAdapter
+from kivy.uix.listview import ListItemButton, ListView
+import json
+
 MAX_SIZE = (1280, 768)
 Config.set('graphics', 'width', MAX_SIZE[0])
 Config.set('graphics', 'height', MAX_SIZE[1])
@@ -75,13 +80,12 @@ class UloginFail(Popup):
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
-
-
 class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
-
+class SolderingProfile(BoxLayout):
+    pass
 class ScreenManagement(ScreenManager):
     pass
 
@@ -89,10 +93,27 @@ class ScreenManagement(ScreenManager):
 class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
-        
+        self.b_init_soldering = True
         self.drill_file_path = "" # drill file path
         #Clock.schedule_interval(self.load_list, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
+    #### File menu
+    def new_file(self):
+        # erase(initialize) all data
+        self.drill_file_path = ""
+    def load_file(self):
+        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Load file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+    def save_file(self):
+        pass
+    def save_as_file(self):
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Save file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+    #### program menu ####
     def import_nc(self):
         content = LoadDialog(load=self.load_nc, cancel=self.dismiss_popup)
         self._popup = Popup(title="Load file", content=content,
@@ -100,10 +121,35 @@ class ListScreen(Screen):
         self._popup.open()
     
     def load_nc(self, path, filename):
-        
+        self.dismiss_popup()
         print(filename)
         self.optmize_nc(filename)
-        self.dismiss_popup()  
+    
+    def select_profile(self):
+        
+        with open('solderingprofile.json', 'r') as f:
+            profile_data = json.load(f)
+        items = []
+        for i in range(len(profile_data["SolderingProfile"])):
+            items.append(profile_data["SolderingProfile"][i]["Id"])
+
+        self.content = SolderingProfile()
+        list_adapter = ListAdapter(data=items,    cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_view = ListView(adapter=list_adapter)
+        list_view.row_height = 160
+        
+        self.content.ids.profile_list.add_widget(list_view)
+        #list_view.adapter.selection = ['USB Signals']
+        list_view.adapter.bind(on_selection_change=self.selected_profile)
+            
+
+        self._popup = Popup(title="Select soldering profile", content=self.content,
+                            size_hint=(0.5, 0.6))
+        self._popup.open()
+
+    def selected_profile(self, adapter):
+        print(adapter.selection[0].text)
+        self.dismiss_popup()
     def optmize_nc(self, path):
         print(path[0])  
         # Read the excellon file
@@ -148,20 +194,12 @@ class ListScreen(Screen):
         print(f.report())
         print('Original path length:  %1.4f' % oldpath)
         print('Optimized path length: %1.4f' % sum(f.path_length().values()))
+    
+
     def dismiss_popup(self):
         self._popup.dismiss()
 
-    def show_load(self):
-        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Load file", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
-
-    def show_save(self):
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Save file", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
+    
 
     def load(self, path, filename):
         with open(os.path.join(path, filename[0])) as stream:
@@ -174,7 +212,7 @@ class ListScreen(Screen):
         with open(os.path.join(path, filename), 'w') as stream:
             pass
             #stream.write(self.text_input.text)
-
+        #print(os.path.join(path, filename))
         self.dismiss_popup()
 
     def show_status(self, dt):
