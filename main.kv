@@ -1,0 +1,215 @@
+#:import C kivy.utils.get_color_from_hex
+#:import os os
+
+<ScreenManagement>:
+    ListScreen:
+
+##################################################
+
+<ListScreen>:
+    name: 'ListPage'
+    id: screen1
+
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgb:0/255., 0/255., 0/255.
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ######## menu part ########
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y:0.1
+            padding:3
+            ActionBar:
+                pos_hint: {'top':1}
+                ActionView:
+                    use_separator: True
+                    ActionPrevious:
+                        title: 'THT Soldering Robot'
+                        size_hint_x: 0.2
+                        with_previous: False
+                    ActionGroup:
+                        text: 'File'
+                        size_hint_x: 0.15 
+                        mode: 'spinner'
+                        ActionButton:
+                            text: 'Load Program'
+                            on_press: root.show_load()
+                        ActionButton:
+                            text: 'Save Program'
+                        ActionButton:
+                            text: 'Save Program As'
+                            on_press: root.show_save()
+                        ActionButton:
+                            text: 'Exit Program'
+                            on_press: app.stop()
+                    ActionGroup:
+                        text: 'Program'
+                        size_hint_x: 0.25 
+                        mode: 'normal'
+                        ActionButton:
+                            text: 'Import NC Drill'
+                            on_press: root.import_nc()
+                        ActionButton:
+                            text: 'Select soldering pad by diameter'
+                        ActionButton:
+                            text: 'Select soldering pad in view'
+                        ActionButton:
+                            text: 'Deselect soldering pad in view'
+                        ActionButton:
+                            text: 'Assign SolderProfile to single pad'
+                        ActionButton:
+                            text: 'Assign SolderProfile to multiple pad'
+                        ActionButton:
+                            text: 'Set Reference Point 1'
+                        ActionButton:
+                            text: 'Set Reference Point 2'
+                        ActionButton:
+                            text: 'Optimize Soldering Point order'
+                    ActionGroup:
+                        text: 'Panel'
+                        size_hint_x: 0.25 
+                        mode: 'spinner'
+                        ActionButton:
+                            text: 'Set Number of Panel'
+                        ActionButton:
+                            text: 'Set Reference Points for Panel1'
+                        ActionButton:
+                            text: 'Set Reference Points for Panel2'
+                        ActionButton:
+                            text: 'Set Reference Points for PanelN'
+                    ActionGroup:
+                        text: 'Connect'
+                        size_hint_x: 0.15 
+                        mode: 'spinner'
+                        ActionButton:
+                            text: 'Set Printer Port'
+                        ActionButton:
+                            text: 'Set Camera Port'
+        
+        ####### toolbar part ######        
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y:0.03
+            Label:
+                text:''
+                size_hint_x: 0.1
+                font_size:16
+                
+            Button:
+                id: btn_start
+                text:'start soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+            Label:
+                text:''
+                size_hint_x: 0.1
+                font_size:16
+            Button:
+                id: btn_stop
+                text:'stop soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+            Label:
+                text:''
+                size_hint_x: 0.1
+                font_size:16  
+            Button:
+                id: btn_test
+                text:'test soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+            Label:
+                text:''
+                size_hint_x: 0.1
+                font_size:16                 
+            
+        ####### body part ##########       
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y:0.72
+            padding: 10
+            TabbedPanel:
+                do_default_tab: False
+                TabbedPanelItem:
+                    text: ' CAD '
+                TabbedPanelItem:
+                    text: ' Camera '
+
+        ####### status part ######
+        # footer part    
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y:0.05
+            padding: 3
+            Label:
+                id: lbl_cad_cam
+                text:''
+                size_hint: 0.5, 1
+                font_size:20
+                
+            Label:
+                id: lbl_solder_status
+                text:''
+                size_hint: 0.5, 1
+                font_size:20
+                
+################################
+<LoadDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
+<SaveDialog>:
+    text_input: text_input
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, text_input.text)
+
