@@ -93,10 +93,21 @@ class ListScreen(Screen):
         
         # Read gerber and Excellon files
         #top_copper = gerber.read('EnergyMeter_Panel2x3.DRR')
+        positions   = {}
+        tools   = {}
         nc_drill = gerber.read('EnergyMeter_Panel2x3.txt')
         print(nc_drill)
         hit_counts = nc_drill.hit_count()
-        print(hit_counts)    
+        print(hit_counts) 
+        oldpath = sum(nc_drill.path_length().values())
+
+        #Get hit positions
+        for hit in nc_drill.hits:
+            tool_num = hit.tool.number
+            if tool_num not in positions.keys():
+                positions[tool_num]   = []
+            positions[tool_num].append(hit.position)
+        print(positions)   
         """
         # Rendering context
         ctx = GerberCairoContext()
