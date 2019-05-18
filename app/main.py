@@ -23,9 +23,12 @@ from kivy.config import Config
 import os
 import requests
 
+# optmized drill path
+import math
 import gerber
-from gerber.render.cairo_backend import GerberCairoContext
+from operator import sub
 from gerber.excellon import DrillHit
+from tsp_solver.greedy import solve_tsp
 
 MAX_SIZE = (1280, 768)
 Config.set('graphics', 'width', MAX_SIZE[0])
@@ -87,34 +90,64 @@ class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
         
+        self.drill_file_path = "" # drill file path
         #Clock.schedule_interval(self.load_list, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     def import_nc(self):
+        content = LoadDialog(load=self.load_nc, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Load file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+    
+    def load_nc(self, path, filename):
         
-        # Read gerber and Excellon files
-        #top_copper = gerber.read('EnergyMeter_Panel2x3.DRR')
+        print(filename)
+        self.optmize_nc(filename)
+        self.dismiss_popup()  
+    def optmize_nc(self, path):
+        print(path[0])  
+        # Read the excellon file
+        f = gerber.read(path[0])
+
         positions   = {}
         tools   = {}
-        nc_drill = gerber.read('EnergyMeter_Panel2x3.txt')
-        print(nc_drill)
-        hit_counts = nc_drill.hit_count()
-        print(hit_counts) 
-        oldpath = sum(nc_drill.path_length().values())
+        hit_counts = f.hit_count()
+        oldpath = sum(f.path_length().values())
 
         #Get hit positions
-        for hit in nc_drill.hits:
+        for hit in f.hits:
             tool_num = hit.tool.number
             if tool_num not in positions.keys():
                 positions[tool_num]   = []
             positions[tool_num].append(hit.position)
-        print(positions)   
-        """
-        # Rendering context
-        ctx = GerberCairoContext()
-        # Create SVG image
-        #top_copper.render(ctx)
-        nc_drill.render(ctx, 'composite.svg')
-        #"""
+
+        hits = []
+
+        # Optimize tool path for each tool
+        for tool, count in iter(hit_counts.items()):
+
+            # Calculate distance matrix
+            distance_matrix = [[math.hypot(*tuple(map(sub, 
+                                                      positions[tool][i], 
+                                                      positions[tool][j]))) 
+                                for j in iter(range(count))] 
+                                for i in iter(range(count))]
+
+            # Calculate new path
+            path = solve_tsp(distance_matrix, 50)
+
+            # Create new hits list
+            hits += [DrillHit(f.tools[tool], positions[tool][p]) for p in path]
+
+        # Update the file
+        f.hits = hits
+        f.filename = f.filename + '.optimized'
+        f.write()
+        
+        # Print drill report
+        print(f.report())
+        print('Original path length:  %1.4f' % oldpath)
+        print('Optimized path length: %1.4f' % sum(f.path_length().values()))
     def dismiss_popup(self):
         self._popup.dismiss()
 
@@ -144,8 +177,6 @@ class ListScreen(Screen):
 
         self.dismiss_popup()
 
-    def load_list(self, dt):
-        pass
     def show_status(self, dt):
         if  self.ids is not "":
             self.ids["lbl_cad_cam"].text = " Camera connected"  
