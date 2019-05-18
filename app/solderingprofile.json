@@ -1,7 +1,12 @@
 {
  "SolderingProfile" :
  [
-	{ "Id": "big header", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":1000, "SolderLength" : 5, "Melting": 5000 },
-	{ "Id": "small header", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":1000, "SolderLength" : 5, "Melting": 5000 }
+	{ "Id": "Weidmuller Conn Term", "OffsetX" : 0.8, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 5.0, "Melting": 2000 },
+	{ "Id": "Wurth Conn Header", "OffsetX" : 0.6, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 }
+	{ "Id": "Magjack RJ45 Signals", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 }
+	{ "Id": "Magjack RJ45 Mounts", "OffsetX" : 0.85, "OffsetY" : 0.0, "Heatup":3000, "SolderLength" : 10.0, "Melting": 3000 }
+	{ "Id": "Wurth Conn Header", "OffsetX" : 0.6, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 2.0, "Melting": 2000 }	
+	{ "Id": "USB Signals", "OffsetX" : 0.5, "OffsetY" : 0.0, "Heatup":2000, "SolderLength" : 1.5, "Melting": 2000 }
+	{ "Id": "USB Mounts", "OffsetX" : 1.8, "OffsetY" : 0.0, "Heatup":3000, "SolderLength" : 10.0, "Melting": 3000 }
  ]
 }
