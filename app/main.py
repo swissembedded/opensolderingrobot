@@ -26,6 +26,7 @@ import requests
 # optmized drill path
 import math
 import gerber
+from gerber.render.cairo_backend import GerberCairoContext
 from operator import sub
 from gerber.excellon import DrillHit
 from tsp_solver.greedy import solve_tsp
@@ -43,24 +44,38 @@ Config.set('graphics', 'resizable', False)
 #############################
 
 screen = {"screen":"main"}
-user= {"email":"", "pass":"" ,"name":""}
-column= {"add":""}
-download = {"download":""}
-report = {"mail":""}
-play_list = {"ID":"", "names":""}
+# data structure
+data = {
+            "Setup": {}, # load setup from setup.json on new project or changes from connect
+            "SolderingProfile" : {}, # load profile from SolderingProfile.json on new project
+            "SelectedSolderingProfile" : "", # take first entry SolderingProfile on new project
+            "NCSettings": {}, # load settings from excellon.json on new project
+            "SolderingProfile" : {}, # load profile from SolderingProfile.json on new project
+            "SelectedSolderingProfile" : "", # take first entry SolderingProfile on new project
+            "NCSettings": {}, # load settings from excellon.json on new project
+            "NCSolderSide": "Top", # let user choose on import of nc file if top or bottom is soldered, in case of bottom, mirror picture on screen on y axis.
+            "NCHits": {}, # generated on nc drill import
+            "NCTools": {}, # generated on nc drill import
+            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
+            "NCHits": {}, # generated on nc drill import
+            "NCTools": {}, # generated on nc drill import
+            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
+            "GHeader" : "", # g-code string loaded from printerheader.txt file on new project
+            "GSolder" : "", # g-code string loaded from printersolder.txt file on new project
+            "GFooter": "", # g-code string loaded from printerfooter.txt file on new project
+            "GSpool" : "", # generated g-code for the panel
+            "Panel": [
+                        # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
+                        #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
+                        # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
+                        #} 
+                        ],
+            "Solder": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
+                        # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
+                        # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":"Weidmuller Conn Term"}
+                        ]
+        }
 
-status_current = {"download":"", "process":""}
-
-# final videos list
-final_list = {"video":"", "from_to":"", "output":""}
-# for downloading list
-downloading_list = []
-# for processing list
-processing_list = []
-
-from_to_list = []
-video_list = []
-output_list = []
 
 def error_handling():
     return ('---UI---Error: {}  {}, line: {}'.format(sys.exc_info()[0],sys.exc_info()[1],sys.exc_info()[2].tb_lineno))
@@ -94,13 +109,30 @@ class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
         self.b_init_soldering = True
-        self.drill_file_path = "" # drill file path
+        self.items = []
+        self.current_profile = ""
+        
+        self.nc_file_path = ""
+        self.drill_file_path = "" 
+        self.cad_file_path = ""
         #Clock.schedule_interval(self.load_list, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     #### File menu
     def new_file(self):
         # erase(initialize) all data
-        self.drill_file_path = ""
+        self.nc_file_path = ""
+        self.drill_file_path = "" 
+        self.cad_file_path = ""
+        self.items = []
+        self.current_profile = ""
+
+        # init cad view
+        self.ids["img_cad"].source = self.cad_file_path
+        self.ids["img_cad"].reload()
+        # init status bar
+        self.ids["lbl_cad_cam"].text = ""  
+        self.ids["lbl_solder_status"].text = ""
+
     def load_file(self):
         content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
         self._popup = Popup(title="Load file", content=content,
@@ -122,44 +154,68 @@ class ListScreen(Screen):
     
     def load_nc(self, path, filename):
         self.dismiss_popup()
-        print(filename)
-        self.optmize_nc(filename)
-    
+        self.nc_file_path = filename[0]
+        # Read gerber and Excellon files
+        data = gerber.read(self.nc_file_path)
+        data.to_metric()
+        # Rendering context
+        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
+        #self.optmize_nc(filename)
+        # Create SVG image
+        data.render(ctx)
+        ctx.dump("temp.png")
+        self.cad_file_path = "temp.png"
+        self.ids["img_cad"].source = self.cad_file_path
+        self.ids["img_cad"].reload()
     def select_profile(self):
         
+        self.items.clear()
         with open('solderingprofile.json', 'r') as f:
             profile_data = json.load(f)
-        items = []
-        for i in range(len(profile_data["SolderingProfile"])):
-            items.append(profile_data["SolderingProfile"][i]["Id"])
-
-        self.content = SolderingProfile()
-        list_adapter = ListAdapter(data=items,    cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
-        list_view = ListView(adapter=list_adapter)
-        list_view.row_height = 160
         
-        self.content.ids.profile_list.add_widget(list_view)
-        #list_view.adapter.selection = ['USB Signals']
+        for i in range(len(profile_data["SolderingProfile"])):
+            if self.current_profile == profile_data["SolderingProfile"][i]["Id"]:
+                dic_solder = {'text':profile_data["SolderingProfile"][i]["Id"], 'is_selected': True}
+                self.b_init_soldering = False
+            else:
+                dic_solder = {'text':profile_data["SolderingProfile"][i]["Id"], 'is_selected': False}
+            self.items.append(dic_solder)
+        
+        content = SolderingProfile()
+        args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 50}
+        list_adapter = ListAdapter(data=self.items, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_view = ListView(adapter=list_adapter)
+        
+        content.ids.profile_list.add_widget(list_view)
+        
         list_view.adapter.bind(on_selection_change=self.selected_profile)
-            
-
-        self._popup = Popup(title="Select soldering profile", content=self.content,
+        
+        
+        self._popup = Popup(title="Select soldering profile", content=content,
                             size_hint=(0.5, 0.6))
         self._popup.open()
 
     def selected_profile(self, adapter):
-        print(adapter.selection[0].text)
-        self.dismiss_popup()
-    def optmize_nc(self, path):
-        print(path[0])  
+        if self.b_init_soldering:
+            self.ids.lbl_solder_status.text = adapter.selection[0].text
+            self.current_profile = adapter.selection[0].text
+            self.dismiss_popup()
+        else:
+            self.b_init_soldering = True
+
+    def optmize_nc(self):
+        if self.nc_file_path == "":
+            return
         # Read the excellon file
-        f = gerber.read(path[0])
+        f = gerber.read(self.nc_file_path)
 
         positions   = {}
         tools   = {}
         hit_counts = f.hit_count()
         oldpath = sum(f.path_length().values())
 
+        print(f.tools)
+        print(f.settings)
         #Get hit positions
         for hit in f.hits:
             tool_num = hit.tool.number
@@ -168,7 +224,7 @@ class ListScreen(Screen):
             positions[tool_num].append(hit.position)
 
         hits = []
-
+        """
         # Optimize tool path for each tool
         for tool, count in iter(hit_counts.items()):
 
@@ -194,8 +250,8 @@ class ListScreen(Screen):
         print(f.report())
         print('Original path length:  %1.4f' % oldpath)
         print('Optimized path length: %1.4f' % sum(f.path_length().values()))
+        """
     
-
     def dismiss_popup(self):
         self._popup.dismiss()
 

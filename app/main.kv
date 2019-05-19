@@ -72,6 +72,7 @@
                             text: 'Set Reference Point 2'
                         ActionButton:
                             text: 'Optimize Soldering Point order'
+                            on_press: root.optmize_nc()
                     ActionGroup:
                         text: 'Panel'
                         size_hint_x: 0.25 
@@ -148,6 +149,10 @@
                 do_default_tab: False
                 TabbedPanelItem:
                     text: ' CAD '
+                    BoxLayout:
+                        size_hint: 1, 1
+                        Image:
+                            id: img_cad
                 TabbedPanelItem:
                     text: ' Camera '
 
