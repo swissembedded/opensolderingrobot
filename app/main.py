@@ -69,6 +69,7 @@ data = {
             "SolderingProfile" : {}, # load profile from SolderingProfile.json on new project
             "SelectedSolderingProfile" : "", # take first entry SolderingProfile on new project
             "NCSettings": {}, # load settings from excellon.json on new project
+			"NCSolderSide": "Top", # let user choose on import of nc file if top or bottom is soldered, in case of bottom, mirror picture on screen on y axis.
             "NCHits": {}, # generated on nc drill import
             "NCTools": {}, # generated on nc drill import
             "GHome" : "", # g-code string loaded from printerhome.txt file on new project
