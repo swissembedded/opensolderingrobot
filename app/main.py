@@ -42,7 +42,7 @@ Config.set('graphics', 'height', MAX_SIZE[1])
 Config.set('graphics', 'resizable', False)
 
 #############################
-
+# TODO clean up
 screen = {"screen":"main"}
 # data structure
 data = {
@@ -57,6 +57,32 @@ data = {
             "NCHits": {}, # generated on nc drill import
             "NCTools": {}, # generated on nc drill import
             "GHome" : "", # g-code string loaded from printerhome.txt file on new project
+            "NCHits": {}, # generated on nc drill import
+            "NCTools": {}, # generated on nc drill import
+            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
+            "GHeader" : "", # g-code string loaded from printerheader.txt file on new project
+            "GSolder" : "", # g-code string loaded from printersolder.txt file on new project
+            "GFooter": "", # g-code string loaded from printerfooter.txt file on new project
+            "GSpool" : "", # generated g-code for the panel
+            "Panel": [
+                        # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
+                        #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
+                        # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
+                        #} 
+                        ],
+            "Solder": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
+                        # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
+                        # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":"Weidmuller Conn Term"}
+                        ]
+        }
+
+# data structure
+data = {
+            "Setup": {}, # load setup from setup.json on new project or changes from connect
+            "SolderingProfile" : {}, # load profile from SolderingProfile.json on new project
+            "SelectedSolderingProfile" : "", # take first entry SolderingProfile on new project
+            "NCSettings": {}, # load settings from excellon.json on new project
+			"NCSolderSide": "Top", # let user choose on import of nc file if top or bottom is soldered, in case of bottom, mirror picture on screen on y axis.
             "NCHits": {}, # generated on nc drill import
             "NCTools": {}, # generated on nc drill import
             "GHome" : "", # g-code string loaded from printerhome.txt file on new project
@@ -252,6 +278,56 @@ class ListScreen(Screen):
         print('Optimized path length: %1.4f' % sum(f.path_length().values()))
         """
     
+
+    # select soldering pad by diameter
+    # 1. dialog with tool selection
+    # 2. add/update all nc drill with that tool in list "solder" with currently selected soldering program info
+
+    # select soldering pad in view
+    # 1. get click coordinate
+    # 2. add / update nc drill with that coordinate in list "solder" with currently soldering program info
+
+    # deselect soldering pad in view
+    # 1. get click coordinate
+    # 2. remove nc drill with that coordinate from list "solder"
+
+    # set reference point 1 & 2
+    # 1. get click coordinate
+    # 2. add / update nc drill with that coordinate from list "solder" with attribute reference point 1 or 2
+
+    # optimize solder point order
+    # 1. pick reference point 1 as first point
+    # 2. find nearest neighbour and iterate on each nearest neighbour until list is sorted
+
+    # set number of panel
+    # 1. show dialog to choose number of panel
+    # 2. persist number in config
+
+    # set reference point for panel
+    # 1. dialog to choose panel number and and two buttons to teach reference point 1 or 2
+    # 2. dialog to move printer on x,y,z, show coordinate, show previously teached reference point values, accept new value, cancel
+    # 3. if accepted, update coordinate on panel n for reference point 1 or 2
+
+    # connect printer
+    # 1. dialog to choose printer device
+    # 2. open port and send printerhome.txt
+
+    # connect video
+    # 1. dialog to choose video device
+    # 2. show camera in camera tab
+
+    # start soldering
+    # 1. dialog to choose panel to solder, default all panels selected
+    # 2. create g-code with header, soldering, footer and save it to file
+    # 3. on button solder pressed, spool the file to the printer, so progress in status
+    
+    # pause soldering
+    # 1. pause spooling until button clicked again
+
+    # stop soldering
+    # 1. stop spooling, send printerfooter file
+
+
     def dismiss_popup(self):
         self._popup.dismiss()
 
