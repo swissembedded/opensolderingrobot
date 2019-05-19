@@ -41,7 +41,7 @@ Config.set('graphics', 'height', MAX_SIZE[1])
 Config.set('graphics', 'resizable', False)
 
 #############################
-
+# TODO clean up
 screen = {"screen":"main"}
 user= {"email":"", "pass":"" ,"name":""}
 column= {"add":""}
@@ -50,6 +50,7 @@ report = {"mail":""}
 play_list = {"ID":"", "names":""}
 
 status_current = {"download":"", "process":""}
+
 
 # final videos list
 final_list = {"video":"", "from_to":"", "output":""}
@@ -61,6 +62,32 @@ processing_list = []
 from_to_list = []
 video_list = []
 output_list = []
+
+# data structure
+data = {
+            "Setup": {}, # load setup from setup.json on new project or changes from connect
+            "SolderingProfile" : {}, # load profile from SolderingProfile.json on new project
+            "SelectedSolderingProfile" : "", # take first entry SolderingProfile on new project
+            "NCSettings": {}, # load settings from excellon.json on new project
+            "NCHits": {}, # generated on nc drill import
+            "NCTools": {}, # generated on nc drill import
+            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
+            "GHeader" : "", # g-code string loaded from printerheader.txt file on new project
+            "GSolder" : "", # g-code string loaded from printersolder.txt file on new project
+            "GFooter": "", # g-code string loaded from printerfooter.txt file on new project
+            "GSpool" : "", # generated g-code for the panel
+            "Panel": [
+                        # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
+                        #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
+                        # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
+                        #} 
+                        ],
+            "Solder": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
+                        # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
+                        # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":"Weidmuller Conn Term"}
+                        ]
+        }
+
 
 def error_handling():
     return ('---UI---Error: {}  {}, line: {}'.format(sys.exc_info()[0],sys.exc_info()[1],sys.exc_info()[2].tb_lineno))
