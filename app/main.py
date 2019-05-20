@@ -53,6 +53,8 @@ Config.set('graphics', 'resizable', False)
 # TODO clean up
 screen = {"screen":"main"}
 real_img_size = {}
+bound_box = {}
+hit_info = []
 # data structure
 data = {
             "Setup": {}, # load setup from setup.json on new project or changes from connect
@@ -96,28 +98,47 @@ class TouchImage(Image):
             try:
                 x_start, y_start = self.pos
                 width, height = self.size
-                ratio_y = height/real_img_size["height"]
-                ratio_width = real_img_size["width"]*ratio_y
+                ratio = height/real_img_size["height"]
+                ratio_width = real_img_size["width"]*ratio
                 x_delta = (width-ratio_width)/2
-
                 x_start += x_delta
+                
                 x_end, y_end = x_start + ratio_width, y_start + height
 
-                #print(touch.pos, "###", self.pos, self.size, "##realsize##",real_img_size,  (x_start, y_start, x_end, y_end))
-                self.select_drill(touch.pos)
+                cur_x, cur_y = touch.pos
+                if cur_x > x_start and cur_x < x_end and cur_y > y_start and cur_y < y_end:
+                    b_exist, dia, (pos_x, pos_y) = self.get_dia_true(touch.pos, ratio, x_start, y_start)
+
+                    if b_exist:
+                        self.select_drill(pos_x, pos_y, dia)
             except:
                 return True
             return True
         return super(TouchImage, self).on_touch_down(touch)
-    def select_drill(self, pos):
+    def select_drill(self, pos_x, pos_y, dia):
         with self.canvas.after:
-            x, y = pos
-            x = x - 7
-            y = y- 7
+            x = pos_x - dia
+            y = pos_y - dia
             Color(255/255, 0/255, 0/255)
-            Ellipse(pos=(x, y), size=(14,14))
+            Ellipse(pos=(x, y), size=(2*dia, 2*dia))
             print(pos)
-
+    def get_dia_true(self, pos, ratio, x_start, y_start):
+        
+        for i in range(len(hit_info)):
+            x, y, radius = hit_info[i]
+            cur_x, cur_y = pos
+            x_min = (x - radius - bound_box["x"])*ratio + x_start
+            x_max = (x + radius - bound_box["x"])*ratio + x_start
+            y_min = (y - radius - bound_box["y"])*ratio + y_start
+            y_max = (y + radius - bound_box["y"])*ratio + y_start
+            if cur_x > x_min and cur_x < x_max and cur_y > y_min and cur_y < y_max:
+                pos_x = x_min + radius*ratio
+                pos_y = y_min + radius*ratio
+                return True, radius, (pos_x, pos_y)
+        return False, 0, (0, 0)
+    def deselect_drill(self):
+        self.canvas.after.clear()
+        
 ########### Pop Up message #######
 class UloginFail(Popup):
     def __init__(self, obj, **kwargs):
@@ -293,6 +314,27 @@ class ListScreen(Screen):
         #print(data.tools)
         #print(data.settings)
         #print(data.hits)
+        #print(data.report())
+        hit_info.clear()
+        import math
+        xmin = 100000
+        xmax = -100000
+        ymin = 100000
+        ymax = -100000
+        for hit in data.hits:
+            x, y = hit.position
+            radius = hit.tool.diameter/2
+            hit_info.append([x*10, y*10, radius*10])
+            xmin = min(x-radius, xmin)
+            xmax = max(x+radius, xmax)
+            ymin = min(y-radius, ymin)
+            ymax = max(y+radius, ymax)
+        
+        bound_box["width"] = round((xmax-xmin)*10)
+        bound_box["height"] = round((ymax-ymin)*10)
+        bound_box["x"] = round(xmin*10)
+        bound_box["y"] = round(ymin*10)
+        
         self.nc_hits = data.hits
         self.nc_tools = data.tools
 
@@ -314,6 +356,7 @@ class ListScreen(Screen):
         self.b_init_dia_tool = True
         self.sel_dia_tool = self.item_nc_tools[0]
         self.write_by_dia(1)
+        self.ids["img_cad_origin"].deselect_drill()
     def select_profile(self):
         
         self.items_soldering_profile.clear()
@@ -424,7 +467,10 @@ class ListScreen(Screen):
         self.cad_img_sel_path = "temp_selected.png"
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
-
+    def select_by_view(self):
+        pass
+    def deselect_by_view(self):
+        self.ids["img_cad_origin"].deselect_drill()
     def optmize_nc(self):
         if self.sel_tool_path == "":
             return
