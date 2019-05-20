@@ -19,6 +19,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.label import Label
+
+from kivy.graphics import Color, Rectangle, Line, Triangle, Ellipse
 # set the initial size
 from kivy.config import Config
 
@@ -108,10 +110,12 @@ class TouchImage(Image):
             return True
         return super(TouchImage, self).on_touch_down(touch)
     def select_drill(self, pos):
-        print(pos)
         with self.canvas.after:
-            Color(255/255, 157/255, 214/255)
-            Ellipse(pos=pos, size=(5,5))
+            x, y = pos
+            x = x - 7
+            y = y- 7
+            Color(255/255, 0/255, 0/255)
+            Ellipse(pos=(x, y), size=(14,14))
             print(pos)
 
 ########### Pop Up message #######
