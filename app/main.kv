@@ -5,7 +5,14 @@
     ListScreen:
 
 ##################################################
-
+<TouchImage>:
+    canvas.before:
+        Color:
+            rgb: 59/255, 109/255, 199/255
+        Rectangle:
+            pos:self.pos
+            size:self.size
+    on_touch_down: self.on_touch_down
 <ListScreen>:
     name: 'ListPage'
     id: screen1
@@ -92,8 +99,10 @@
                         mode: 'spinner'
                         ActionButton:
                             text: 'Set Printer Port'
+                            on_press: root.set_printer()
                         ActionButton:
                             text: 'Set Camera Port'
+                            on_press: root.set_camera()
         
         ####### toolbar part ######        
         BoxLayout:
@@ -156,8 +165,9 @@
                         BoxLayout:
                             size_hint_x: 0.5
                             padding: 5
-                            Image:
+                            TouchImage:
                                 id: img_cad_origin
+
                         BoxLayout:
                             size_hint_x: 0.5
                             padding: 5
@@ -237,4 +247,28 @@
         id: profile_list
         orientation: 'vertical'
         padding:8
-        
+<EditPopup>
+    BoxLayout:
+        orientation: 'vertical'
+        padding:8
+        BoxLayout:
+            size_hint_y: 0.5
+            TextInput:
+                id: text_port
+                font_size: 24
+                size_hint_y: None
+                height: 40
+                multiline: False
+        BoxLayout:
+            size_hint_y: 0.5
+            
+            Button:
+                text: "Cancel"
+                size_hint_y: None
+                height: 40
+                on_release: root.cancel()
+            Button:
+                text: "Connect"
+                size_hint_y: None
+                height: 40
+                on_release: root.save(text_port.text)

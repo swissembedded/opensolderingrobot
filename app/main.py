@@ -12,11 +12,13 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.screenmanager import ScreenManager
 from kivy.core.window import Window
 from kivy.uix.popup import Popup
-
+# list view for soldering profile
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.listview import ListItemButton, ListView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.image import Image
+from kivy.uix.label import Label
 # set the initial size
 from kivy.config import Config
 
@@ -31,10 +33,9 @@ from operator import sub
 from gerber.excellon import DrillHit
 from tsp_solver.greedy import solve_tsp
 
-# list view for soldering profile
-from kivy.adapters.listadapter import ListAdapter
-from kivy.uix.listview import ListItemButton, ListView
+
 import json
+from PIL import Image as pil_image
 
 try:
     from cStringIO import StringIO
@@ -49,6 +50,7 @@ Config.set('graphics', 'resizable', False)
 #############################
 # TODO clean up
 screen = {"screen":"main"}
+real_img_size = {}
 # data structure
 data = {
             "Setup": {}, # load setup from setup.json on new project or changes from connect
@@ -81,14 +83,36 @@ data = {
                         ]
         }
 
-def error_handling():
-    return ('---UI---Error: {}  {}, line: {}'.format(sys.exc_info()[0],sys.exc_info()[1],sys.exc_info()[2].tb_lineno))
-
 def assure_path_exists(path):
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
         os.makedirs(dir)
+class TouchImage(Image):
 
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            try:
+                x_start, y_start = self.pos
+                width, height = self.size
+                ratio_y = height/real_img_size["height"]
+                ratio_width = real_img_size["width"]*ratio_y
+                x_delta = (width-ratio_width)/2
+
+                x_start += x_delta
+                x_end, y_end = x_start + ratio_width, y_start + height
+
+                #print(touch.pos, "###", self.pos, self.size, "##realsize##",real_img_size,  (x_start, y_start, x_end, y_end))
+                self.select_drill(touch.pos)
+            except:
+                return True
+            return True
+        return super(TouchImage, self).on_touch_down(touch)
+    def select_drill(self, pos):
+        print(pos)
+        with self.canvas.after:
+            Color(255/255, 157/255, 214/255)
+            Ellipse(pos=pos, size=(5,5))
+            print(pos)
 
 ########### Pop Up message #######
 class UloginFail(Popup):
@@ -105,9 +129,11 @@ class SaveDialog(FloatLayout):
     cancel = ObjectProperty(None)
 class ListPopup(BoxLayout):
     pass
+class EditPopup(BoxLayout):
+    save = ObjectProperty(None)
+    cancel = ObjectProperty(None)
 class ScreenManagement(ScreenManager):
     pass
-
 
 class ListScreen(Screen):
     def __init__(self, **kwargs):
@@ -139,6 +165,10 @@ class ListScreen(Screen):
         self.g_spool = ""
         self.panel_settings = ""
         self.solder_settings = ""
+
+        #### port settings 
+        self.cam_port = ""
+        self.printer_port = ""
         Clock.schedule_interval(self.init_gui, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     def init_gui(self, dt):
@@ -169,6 +199,9 @@ class ListScreen(Screen):
 
         with open('setup.json', 'r') as f:
             self.setup_settings = json.load(f)
+        self.printer_port = self.setup_settings["RobotPort"]
+        self.cam_port = self.setup_settings["CameraPort"]
+
         with open('solderingprofile.json', 'r') as f:
             self.sol_profile_settings = json.load(f)
         self.sel_soldering_profile = self.sol_profile_settings["SolderingProfile"][0]["Id"]
@@ -269,7 +302,10 @@ class ListScreen(Screen):
         self.cad_img_origin_path = "temp_origin.png"
         self.ids["img_cad_origin"].source = self.cad_img_origin_path
         self.ids["img_cad_origin"].reload()
-
+        # get real image size
+        im = pil_image.open('temp_origin.png')
+        real_img_size["width"], real_img_size["height"] = im.size
+        
         # show image with selected tool(dia)
         self.b_init_dia_tool = True
         self.sel_dia_tool = self.item_nc_tools[0]
@@ -354,7 +390,7 @@ class ListScreen(Screen):
         str_00_tool = "T" + '{:02d}'.format(sel_tool)
         str_tool = "T" + str(sel_tool)
         b_start = False
-        print(str_00_tool)
+        
         with open(self.nc_file_path, 'rU') as f:
             data = f.read()
         self.sel_tool_path = "sel_dia_excellon.txt"
@@ -482,8 +518,34 @@ class ListScreen(Screen):
 
     # stop soldering
     # 1. stop spooling, send printerfooter file
+    #### Connect menu
+    def set_printer(self):
+        content = EditPopup(save=self.save_printer_port, cancel=self.dismiss_popup)
+        content.ids["text_port"].text = self.printer_port
+        self._popup = Popup(title="Select Printer port", content=content,
+                            size_hint=(0.5, 0.4))
+        self._popup.open()
+    def save_printer_port(self, txt_port):
+        print(txt_port)
+        self.dismiss_popup()
+        pass
 
-
+    def set_camera(self):
+        content = EditPopup(save=self.save_camera_port, cancel=self.dismiss_popup)
+        content.ids["text_port"].text = self.cam_port
+        self._popup = Popup(title="Select Camera port", content=content,
+                            size_hint=(0.5, 0.4))
+        self._popup.open()
+    def save_camera_port(self, txt_port):
+        print(txt_port)
+        self.dismiss_popup()
+        pass
+    """
+    def on_touch_down(self, touch):
+        if not self.ids.img_cad_origin.collide_point(*touch.pos):
+            return False
+        print(touch)
+    """
     def dismiss_popup(self):
         self._popup.dismiss()
 
