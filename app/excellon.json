@@ -1,11 +1,11 @@
 {
 	"Settings": 
 	{
-		"XOffset" : 0.0
-		"YOffset" : 0.0
-		"IntegerPlaces" : 4
-		"DecimalPlaces" : 4
-		"Units" : "metric"
+		"XOffset" : 0.0,
+		"YOffset" : 0.0,
+		"IntegerPlaces" : 4,
+		"DecimalPlaces" : 4,
+		"Units" : "metric",
 		"Notation" : "absolute"
 	}
 }

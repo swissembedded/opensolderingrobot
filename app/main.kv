@@ -62,6 +62,7 @@
                             on_press: root.select_profile()
                         ActionButton:
                             text: 'Select soldering pad by diameter'
+                            on_press: root.select_by_dia()
                         ActionButton:
                             text: 'Select soldering pad in view'
                         ActionButton:
@@ -144,15 +145,25 @@
         BoxLayout:
             orientation: 'vertical'
             size_hint_y:0.72
-            padding: 10
+            padding: 3
             TabbedPanel:
                 do_default_tab: False
                 TabbedPanelItem:
                     text: ' CAD '
                     BoxLayout:
+                        orientation: 'horizontal'
                         size_hint: 1, 1
-                        Image:
-                            id: img_cad
+                        BoxLayout:
+                            size_hint_x: 0.5
+                            padding: 5
+                            Image:
+                                id: img_cad_origin
+                        BoxLayout:
+                            size_hint_x: 0.5
+                            padding: 5
+                            Image:
+                                id: img_cad_selected
+                                
                 TabbedPanelItem:
                     text: ' Camera '
 
@@ -221,8 +232,9 @@
                 text: "Save"
                 on_release: root.save(filechooser.path, text_input.text)
 ########## select soldering profile ######
-<SolderingProfile>
+<ListPopup>
     BoxLayout:
         id: profile_list
         orientation: 'vertical'
         padding:8
+        
