@@ -56,6 +56,8 @@ real_img_size = {}
 bound_box = {}
 hit_info = []
 sel_hit_info = []
+sel_last_hit_info = {"last":"","first":"","second":""}
+
 # data structure
 data = {
             "Setup": {}, # load setup from setup.json on new project or changes from connect
@@ -112,6 +114,8 @@ class TouchImage(Image):
 
                     if b_exist:
                         self.select_drill(pos_x, pos_y, dia)
+                        sel_last_hit_info["last"] = (pos_x, pos_y, dia)
+                        
             except:
                 return True
             return True
@@ -122,7 +126,7 @@ class TouchImage(Image):
             y = pos_y - dia
             Color(255/255, 0/255, 0/255)
             Ellipse(pos=(x, y), size=(2*dia, 2*dia))
-            print(pos)
+            
     def get_dia_true(self, pos, ratio, x_start, y_start):
         
         for i in range(len(hit_info)):
@@ -135,13 +139,46 @@ class TouchImage(Image):
             if cur_x > x_min and cur_x < x_max and cur_y > y_min and cur_y < y_max:
                 pos_x = x_min + radius*ratio
                 pos_y = y_min + radius*ratio
-                print(x, y, radius)
+                
                 sel_hit_info.append((x/10, y/10, radius*2/10, tool_num))
                 return True, radius*ratio, (pos_x, pos_y)
         return False, 0, (0, 0)
     def deselect_drill(self):
         self.canvas.after.clear()
         sel_hit_info.clear()
+    def set_reference(self, b_first):
+        pos_x, pos_y, dia = sel_last_hit_info["last"]
+        self.canvas.after.clear()
+        if b_first:
+            with self.canvas.after:
+                x = pos_x - dia
+                y = pos_y - dia
+                Color(0/255, 0/255, 255/255)
+                Ellipse(pos=(x, y), size=(2*dia, 2*dia))
+                sel_last_hit_info["first"] = sel_last_hit_info["last"]
+            if sel_last_hit_info["second"] != "":
+                pos_x, pos_y, dia = sel_last_hit_info["second"]
+                with self.canvas.after:
+                    x = pos_x - dia
+                    y = pos_y - dia
+                    Color(0/255, 0/255, 255/255)
+                    Ellipse(pos=(x, y), size=(2*dia, 2*dia))
+        else:
+            with self.canvas.after:
+                x = pos_x - dia
+                y = pos_y - dia
+                Color(0/255, 0/255, 255/255)
+                Ellipse(pos=(x, y), size=(2*dia, 2*dia))
+                sel_last_hit_info["second"] = sel_last_hit_info["last"]
+            if sel_last_hit_info["first"] != "":
+                pos_x, pos_y, dia = sel_last_hit_info["first"]
+                with self.canvas.after:
+                    x = pos_x - dia
+                    y = pos_y - dia
+                    Color(0/255, 0/255, 255/255)
+                    Ellipse(pos=(x, y), size=(2*dia, 2*dia))    
+                
+        sel_hit_info.clear()    
         
 ########### Pop Up message #######
 class UloginFail(Popup):
@@ -194,6 +231,8 @@ class ListScreen(Screen):
         self.g_spool = ""
         self.panel_settings = ""
         self.solder_settings = ""
+        self.reference_1 = ""
+        self.reference_2 = ""
 
         #### port settings 
         self.cam_port = ""
@@ -251,6 +290,9 @@ class ListScreen(Screen):
             self.g_solder = f.read()
 
         self.g_spool = ""
+        self.reference_1 = ""
+        self.reference_2 = ""
+
         self.panel_settings = ""
         self.solder_settings = ""
 
@@ -472,6 +514,8 @@ class ListScreen(Screen):
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
     def select_by_view(self):
+        if len(sel_hit_info) < 1:
+            return
         sel_hit_info.sort(key=self.take_tool_num)
         
         with open(self.nc_file_path, 'rU') as f:
@@ -534,11 +578,21 @@ class ListScreen(Screen):
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
         
-        pass
     def take_tool_num(self, elem):
         return elem[3]
     def deselect_by_view(self):
         self.ids["img_cad_origin"].deselect_drill()
+        self.ids["img_cad_selected"].source = ""
+    def set_reference1(self):
+        if len(sel_hit_info) < 1:
+            return
+        self.reference_1 = sel_hit_info[len(sel_hit_info)-1]
+        self.ids["img_cad_origin"].set_reference(True)
+    def set_reference2(self):
+        if len(sel_hit_info) < 1:
+            return
+        self.reference_2 = sel_hit_info[len(sel_hit_info)-1]
+        self.ids["img_cad_origin"].set_reference(False)
     def optmize_nc(self):
         if self.sel_tool_path == "":
             return
