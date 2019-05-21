@@ -55,6 +55,7 @@ screen = {"screen":"main"}
 real_img_size = {}
 bound_box = {}
 hit_info = []
+sel_hit_info = []
 # data structure
 data = {
             "Setup": {}, # load setup from setup.json on new project or changes from connect
@@ -125,7 +126,7 @@ class TouchImage(Image):
     def get_dia_true(self, pos, ratio, x_start, y_start):
         
         for i in range(len(hit_info)):
-            x, y, radius = hit_info[i]
+            x, y, radius, tool_num = hit_info[i]
             cur_x, cur_y = pos
             x_min = (x - radius - bound_box["x"])*ratio + x_start
             x_max = (x + radius - bound_box["x"])*ratio + x_start
@@ -134,10 +135,13 @@ class TouchImage(Image):
             if cur_x > x_min and cur_x < x_max and cur_y > y_min and cur_y < y_max:
                 pos_x = x_min + radius*ratio
                 pos_y = y_min + radius*ratio
-                return True, radius, (pos_x, pos_y)
+                print(x, y, radius)
+                sel_hit_info.append((x/10, y/10, radius*2/10, tool_num))
+                return True, radius*ratio, (pos_x, pos_y)
         return False, 0, (0, 0)
     def deselect_drill(self):
         self.canvas.after.clear()
+        sel_hit_info.clear()
         
 ########### Pop Up message #######
 class UloginFail(Popup):
@@ -324,7 +328,7 @@ class ListScreen(Screen):
         for hit in data.hits:
             x, y = hit.position
             radius = hit.tool.diameter/2
-            hit_info.append([x*10, y*10, radius*10])
+            hit_info.append([x*10, y*10, radius*10, hit.tool.number])
             xmin = min(x-radius, xmin)
             xmax = max(x+radius, xmax)
             ymin = min(y-radius, ymin)
@@ -468,7 +472,71 @@ class ListScreen(Screen):
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
     def select_by_view(self):
+        sel_hit_info.sort(key=self.take_tool_num)
+        
+        with open(self.nc_file_path, 'rU') as f:
+            data = f.read()
+        with open("aaa.txt", 'w') as wf:
+            pre_x, pre_y = "", ""
+            for line in StringIO(data):
+                line_temp = line.strip()
+                if line_temp[0] == "T":
+                    arr_line_temp = line_temp.split("F")
+                    previous_tool = ""
+                    for sel_hit in sel_hit_info:
+                        x, y, dia, sel_tool = sel_hit
+                        if sel_tool != previous_tool:
+                            str_00_tool = "T" + '{:02d}'.format(sel_tool)
+                            str_tool = "T" + str(sel_tool)
+                            if str_tool == arr_line_temp[0] and len(arr_line_temp)>1:
+                                wf.write(line_temp + '\n')
+                            elif str_00_tool == line_temp:
+                                wf.write(line_temp + '\n')
+
+                        previous_tool = sel_tool
+                elif line_temp[0] in ['X', 'Y']:
+                    arr_temp = line_temp.split("Y")
+                    if len(arr_temp)==1:
+                        cur_y = pre_y
+                        cur_x = arr_temp[0]
+                    else: 
+                        if arr_temp[0] == '':
+                            cur_x = pre_x
+                            cur_y = arr_temp[1]
+                        else:
+                            cur_x = arr_temp[0]
+                            cur_y = arr_temp[1]
+                    
+                    for sel_hit in sel_hit_info:
+                        x, y, dia, sel_tool = sel_hit
+                        x = int(x*1000000)
+                        y = int(y*1000000)
+                        str_x = str(x).replace(".","").replace("0","")
+                        str_y = str(y).replace(".","").replace("0","")
+                        temp_cur_x = str(int(cur_x.replace("X", ""))*1000000).replace("0","")
+                        temp_cur_y = str(int(cur_y)*1000000).replace("0","")
+                        
+                        if temp_cur_x == str_x and temp_cur_y == str_y:
+                            wf.write(cur_x + "Y" + cur_y + '\n')
+                            #wf.write(line_temp + '\n')
+
+                    pre_x = cur_x
+                    pre_y = cur_y
+                else:
+                    wf.write(line_temp + '\n')
+        wf.close()
+        data = gerber.read("aaa.txt")
+        data.to_metric()
+        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
+        data.render(ctx)
+        ctx.dump("temp_selected.png")
+        self.cad_img_sel_path = "temp_selected.png"
+        self.ids["img_cad_selected"].source = self.cad_img_sel_path
+        self.ids["img_cad_selected"].reload()
+        
         pass
+    def take_tool_num(self, elem):
+        return elem[3]
     def deselect_by_view(self):
         self.ids["img_cad_origin"].deselect_drill()
     def optmize_nc(self):
