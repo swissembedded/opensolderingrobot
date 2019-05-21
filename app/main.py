@@ -43,6 +43,9 @@ try:
     from cStringIO import StringIO
 except(ImportError):
     from io import StringIO
+#to send a file of gcode to the printer
+from printrun.printcore import printcore
+from printrun import gcoder
 
 MAX_SIZE = (1280, 768)
 Config.set('graphics', 'width', MAX_SIZE[0])
@@ -216,6 +219,8 @@ class ListScreen(Screen):
         self.sel_tool_path = "" 
         self.cad_img_origin_path = ""
         self.cad_img_sel_path = ""
+        self.panel_num = 1
+        self.cur_panel_num = 1
 
         ### setup settings
         self.setup_settings = ""
@@ -237,6 +242,10 @@ class ListScreen(Screen):
         #### port settings 
         self.cam_port = ""
         self.printer_port = ""
+
+        #### soldering settings
+        self.b_start_soldering = True
+        self.print = None
         Clock.schedule_interval(self.init_gui, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     def init_gui(self, dt):
@@ -690,6 +699,31 @@ class ListScreen(Screen):
 
     # stop soldering
     # 1. stop spooling, send printerfooter file
+    ##### panel menu
+    def set_num_panel(self):
+        content = EditPopup(save=self.save_panel_num, cancel=self.dismiss_popup)
+        content.ids["btn_connect"].text = "Save"
+        content.ids["text_port"].text = str(1)
+        self._popup = Popup(title="Select panel num", content=content,
+                            size_hint=(0.5, 0.4))
+        self._popup.open()
+    def save_panel_num(self, txt_port):
+        self.panel_num  = int(txt_port)
+        self.dismiss_popup()
+
+    def set_reference_panel(self):
+        content = EditPopup(save=self.save_refrence_panel, cancel=self.dismiss_popup)
+        content.ids["text_port"].text = str(1)
+        content.ids["btn_connect"].text = "Save"
+        self._popup = Popup(title="Select panel num", content=content,
+                            size_hint=(0.5, 0.4))
+        self._popup.open()
+    def save_refrence_panel(self, txt_port):
+        self.cur_panel_num  = int(txt_port)
+        self.dismiss_popup()
+        # this part set reference panel N
+        #
+        ######
     #### Connect menu
     def set_printer(self):
         content = EditPopup(save=self.save_printer_port, cancel=self.dismiss_popup)
@@ -698,10 +732,9 @@ class ListScreen(Screen):
                             size_hint=(0.5, 0.4))
         self._popup.open()
     def save_printer_port(self, txt_port):
-        print(txt_port)
+        self.printer_post = txt_port
         self.dismiss_popup()
-        pass
-
+        
     def set_camera(self):
         content = EditPopup(save=self.save_camera_port, cancel=self.dismiss_popup)
         content.ids["text_port"].text = self.cam_port
@@ -709,15 +742,37 @@ class ListScreen(Screen):
                             size_hint=(0.5, 0.4))
         self._popup.open()
     def save_camera_port(self, txt_port):
-        print(txt_port)
+        self.cam_port = txt_port
         self.dismiss_popup()
+        
+    def start_soldering(self):
+        if self.ids["btn_start"].text == "start soldering":
+            self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
+            gcode=[line.strip() for line in StringIO(self.g_header)] # or pass in your own array of gcode lines instead of reading from a file
+            
+            gcode = gcoder.LightGCode(gcode)
+            self.print.startprint(gcode) # this will start a print
+        
+        if self.b_start_soldering:
+            self.b_start_soldering = False
+            self.ids["btn_start"].text = "pause soldering"
+            self.print.resume()
+        else:
+            self.b_start_soldering = True
+            self.ids["btn_start"].text = "resume soldering"
+            #If you need to interact with the printer:
+            self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
+            self.print.pause() # use these to pause/resume the current print
+    
+    def stop_soldering(self):
+        # this is how you disconnect from the printer once you are done. 
+        #This will also stop running prints.    
+        self.print.disconnect() 
+        self.ids["btn_start"].text = "start soldering"
         pass
-    """
-    def on_touch_down(self, touch):
-        if not self.ids.img_cad_origin.collide_point(*touch.pos):
-            return False
-        print(touch)
-    """
+    def test_soldering(self):
+        pass  
+
     def dismiss_popup(self):
         self._popup.dismiss()
 

@@ -91,12 +91,10 @@
                         mode: 'spinner'
                         ActionButton:
                             text: 'Set Number of Panel'
+                            on_press: root.set_num_panel()
                         ActionButton:
-                            text: 'Set Reference Points for Panel1'
-                        ActionButton:
-                            text: 'Set Reference Points for Panel2'
-                        ActionButton:
-                            text: 'Set Reference Points for PanelN'
+                            text: 'Set Reference Points for Panel'
+                            on_press: root.set_reference_panel()
                     ActionGroup:
                         text: 'Connect'
                         size_hint_x: 0.15 
@@ -125,6 +123,7 @@
                 font_size:24
                 background_color: 208/255, 128/255, 34/255, 1
                 background_normal: ""
+                on_press: root.start_soldering()
             Label:
                 text:''
                 size_hint_x: 0.1
@@ -137,6 +136,7 @@
                 font_size:24
                 background_color: 208/255, 128/255, 34/255, 1
                 background_normal: ""
+                on_press: root.stop_soldering()
             Label:
                 text:''
                 size_hint_x: 0.1
@@ -149,6 +149,7 @@
                 font_size:24
                 background_color: 208/255, 128/255, 34/255, 1
                 background_normal: ""
+                on_press: root.test_soldering()
             Label:
                 text:''
                 size_hint_x: 0.1
@@ -272,6 +273,7 @@
                 height: 40
                 on_release: root.cancel()
             Button:
+                id: btn_connect
                 text: "Connect"
                 size_hint_y: None
                 height: 40
