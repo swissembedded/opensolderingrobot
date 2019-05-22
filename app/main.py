@@ -21,6 +21,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 
 from kivy.graphics import Color, Rectangle, Line, Triangle, Ellipse
+from kivy.graphics.texture import Texture
 # set the initial size
 from kivy.config import Config
 
@@ -34,7 +35,9 @@ from gerber.render.cairo_backend import GerberCairoContext
 from operator import sub
 from gerber.excellon import DrillHit
 from tsp_solver.greedy import solve_tsp
-
+# for camera view
+import cv2
+from videocaptureasync import VideoCaptureAsync
 
 import json
 from PIL import Image as pil_image
@@ -246,11 +249,25 @@ class ListScreen(Screen):
         #### soldering settings
         self.b_start_soldering = True
         self.print = None
+        #### camera capture 
+        self.capture = None
+
         Clock.schedule_interval(self.init_gui, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     def init_gui(self, dt):
         self.new_file()
-        Clock.unschedule(self.init_gui)    
+        Clock.unschedule(self.init_gui) 
+        Clock.schedule_interval(self.cam_update, 0.01) 
+    def cam_update(self, dt):
+        try:
+            _, frame = self.capture.read()
+            buf1 = cv2.flip(frame, 0)
+            buf = buf1.tostring()
+            texture1 = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='rgb')
+            texture1.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
+            self.ids['img_cam'].texture = texture1
+        except Exception as e:
+            pass  
     #### File menu
     def new_file(self):
         self.init_project()
@@ -304,7 +321,12 @@ class ListScreen(Screen):
 
         self.panel_settings = ""
         self.solder_settings = ""
-
+        try:
+            self.capture = VideoCaptureAsync(self.cam_port)
+            self.capture.start()
+        except:
+            pass
+        
     def make_JSON(self):
         dic_data = {}
         dic_data["Setup"] = self.setup_settings
@@ -755,6 +777,11 @@ class ListScreen(Screen):
         self._popup.open()
     def save_camera_port(self, txt_port):
         self.cam_port = txt_port
+        try:
+            self.capture = VideoCaptureAsync(self.cam_port)
+            self.capture.start()
+        except  Exception as e:
+            pass
         self.dismiss_popup()
         
     def start_soldering(self):
