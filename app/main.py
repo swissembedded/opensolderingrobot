@@ -699,6 +699,18 @@ class ListScreen(Screen):
 
     # stop soldering
     # 1. stop spooling, send printerfooter file
+    
+    # create g
+    # get soldering profile for the soldering point
+    # derive TravelZ, Heatup, SolderingLength, Melting from soldering profile
+    # PosX / PosY / PosZ is the coordinate of the soldering point, PosZ is derived from teachin of the reference points, PosX and PosY is transformation from drill
+    # ApproxX = PosX-ApproxOffsetX
+    # ApproxY = PosY-ApproxOffsetY
+    # ApproxZ = PosZ-ApproxOffsetZ
+    # SolderX = PosX-SolderOffsetX 
+    # SolderY = PosY-SolderOffsetY
+    # SolderZ = PosZ-SolderOffsetZ  F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program
+
     ##### panel menu
     def set_num_panel(self):
         content = EditPopup(save=self.save_panel_num, cancel=self.dismiss_popup)
