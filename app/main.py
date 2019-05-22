@@ -703,7 +703,7 @@ class ListScreen(Screen):
     def set_num_panel(self):
         content = EditPopup(save=self.save_panel_num, cancel=self.dismiss_popup)
         content.ids["btn_connect"].text = "Save"
-        content.ids["text_port"].text = str(1)
+        content.ids["text_port"].text = str(self.panel_num)
         self._popup = Popup(title="Select panel num", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
