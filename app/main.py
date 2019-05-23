@@ -167,13 +167,13 @@ class TouchImage(Image):
                 with self.canvas.after:
                     x = pos_x - dia
                     y = pos_y - dia
-                    Color(0/255, 0/255, 255/255)
+                    Color(0/255, 255/255, 0/255)
                     Ellipse(pos=(x, y), size=(2*dia, 2*dia))
         else:
             with self.canvas.after:
                 x = pos_x - dia
                 y = pos_y - dia
-                Color(0/255, 0/255, 255/255)
+                Color(0/255, 255/255, 0/255)
                 Ellipse(pos=(x, y), size=(2*dia, 2*dia))
                 sel_last_hit_info["second"] = sel_last_hit_info["last"]
             if sel_last_hit_info["first"] != "":
@@ -643,6 +643,7 @@ class ListScreen(Screen):
             if tool_num not in positions.keys():
                 positions[tool_num]   = []
             positions[tool_num].append(hit.position)
+            print(hit.position)
 
         hits = []
         
@@ -786,27 +787,42 @@ class ListScreen(Screen):
         
     def start_soldering(self):
         if self.ids["btn_start"].text == "start soldering":
-            self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
-            gcode=[line.strip() for line in StringIO(self.g_header)] # or pass in your own array of gcode lines instead of reading from a file
-            
+            #self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
+            gcode=[line.strip() for line in StringIO(self.g_header)] 
+            # or pass in your own array of gcode lines instead of reading from a file
             gcode = gcoder.LightGCode(gcode)
-            self.print.startprint(gcode) # this will start a print
+            
+            TravelZ = self.sel_sol_profile_settings["TravelZ"]
+            SolderingLength = self.sel_sol_profile_settings["SolderingLength"]
+            Melting = self.sel_sol_profile_settings["Melting"]
+            Heatup = self.sel_sol_profile_settings["Heatup"]
+            
+            SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
+            SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
+            
+            ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
+            ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
+            ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
+
+            print(gcode)
+            print(self.sel_sol_profile_settings)
+            #self.print.startprint(gcode) # this will start a print
         
         if self.b_start_soldering:
             self.b_start_soldering = False
             self.ids["btn_start"].text = "pause soldering"
-            self.print.resume()
+            #self.print.resume()
         else:
             self.b_start_soldering = True
             self.ids["btn_start"].text = "resume soldering"
             #If you need to interact with the printer:
             self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
-            self.print.pause() # use these to pause/resume the current print
+            #self.print.pause() # use these to pause/resume the current print
     
     def stop_soldering(self):
         # this is how you disconnect from the printer once you are done. 
         #This will also stop running prints.    
-        self.print.disconnect() 
+        #self.print.disconnect() 
         self.ids["btn_start"].text = "start soldering"
         pass
     def test_soldering(self):
