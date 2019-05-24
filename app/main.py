@@ -877,6 +877,7 @@ class ListScreen(Screen):
                 
                 #### ????
                 # i think i should add gcode for panel here, how way ?
+                # Panel is just a loop over above, with new set of reference points
                 ####
                 for line in StringIO(self.g_footer):
                     gcode.append(line.strip())
