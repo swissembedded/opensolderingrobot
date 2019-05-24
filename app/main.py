@@ -3,13 +3,11 @@
 
 from time import time
 from kivy.app import App
-from os.path import dirname, join
 from kivy.lang import Builder
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ObjectProperty
 from kivy.clock import Clock
 from kivy.animation import Animation
-from kivy.uix.screenmanager import Screen
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.uix.popup import Popup
 # list view for soldering profile
@@ -49,6 +47,10 @@ except(ImportError):
 #to send a file of gcode to the printer
 from printrun.printcore import printcore
 from printrun import gcoder
+# to make g-code 
+import math
+from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
+from numpy.linalg import norm
 
 MAX_SIZE = (1280, 768)
 Config.set('graphics', 'width', MAX_SIZE[0])
@@ -96,10 +98,6 @@ data = {
                         ]
         }
 
-def assure_path_exists(path):
-    dir = os.path.dirname(path)
-    if not os.path.exists(dir):
-        os.makedirs(dir)
 class TouchImage(Image):
 
     def on_touch_down(self, touch):
@@ -185,12 +183,6 @@ class TouchImage(Image):
                     Ellipse(pos=(x, y), size=(2*dia, 2*dia))    
                 
         sel_hit_info.clear()    
-        
-########### Pop Up message #######
-class UloginFail(Popup):
-    def __init__(self, obj, **kwargs):
-        super(UloginFail, self).__init__(**kwargs)
-        self.obj = obj
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -247,7 +239,8 @@ class ListScreen(Screen):
         self.printer_port = ""
 
         #### soldering settings
-        self.b_start_soldering = True
+        self.b_start_soldering = False
+        self.b_started = False
         self.print = None
         #### camera capture 
         self.capture = None
@@ -383,17 +376,14 @@ class ListScreen(Screen):
         self.nc_file_path = filename[0]
         # Read gerber and Excellon files
         data = gerber.read(self.nc_file_path)
-        #print(data.statements)
         for tool in iter(data.tools.values()):
-            #print(tool)
             self.item_nc_tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
-        #print(self.item_nc_tools)
         #print(data.tools)
         #print(data.settings)
         #print(data.hits)
         #print(data.report())
         hit_info.clear()
-        import math
+        
         xmin = 100000
         xmax = -100000
         ymin = 100000
@@ -784,39 +774,128 @@ class ListScreen(Screen):
         except  Exception as e:
             pass
         self.dismiss_popup()
-        
+    def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0,0)):
+        x, y = point
+        ox, oy = origin
+        tx, ty = translation
+
+        qx = tx + (math.cos(radians) * (x - ox) + math.sin(radians) * (y - oy))*scale
+        qy = ty + (-math.sin(radians) * (x - ox) + math.cos(radians) * (y - oy))*scale
+
+        return qx, qy    
     def start_soldering(self):
         if self.ids["btn_start"].text == "start soldering":
-            #self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
-            gcode=[line.strip() for line in StringIO(self.g_header)] 
-            # or pass in your own array of gcode lines instead of reading from a file
-            gcode = gcoder.LightGCode(gcode)
-            
-            TravelZ = self.sel_sol_profile_settings["TravelZ"]
-            SolderingLength = self.sel_sol_profile_settings["SolderingLength"]
-            Melting = self.sel_sol_profile_settings["Melting"]
-            Heatup = self.sel_sol_profile_settings["Heatup"]
-            
-            SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
-            SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
-            
-            ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
-            ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
-            ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
+            if self.reference_1 != "" and self.reference_2 != "":
+                
+                TravelZ = self.sel_sol_profile_settings["TravelZ"]
+                SolderLength = self.sel_sol_profile_settings["SolderLength"]
+                Melting = self.sel_sol_profile_settings["Melting"]
+                Heatup = self.sel_sol_profile_settings["Heatup"]
+                
+                SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
+                SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
+                SolderOffsetZ= 10 # ???? where is this value define?
 
-            print(gcode)
-            print(self.sel_sol_profile_settings)
-            #self.print.startprint(gcode) # this will start a print
+                ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
+                ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
+                ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
+                print(self.reference_2)
+                x1_0, y1_0 = self.reference_1[0], self.reference_1[1]
+                x2_0, y2_0 = self.reference_2[0], self.reference_2[1]
+                
+                backside=1 # set backside to -1 on bottom layer
+                xp1=x1_0*backside
+                yp1=y1_0
+                x1=-yp1
+                y1=xp1
+                
+                xp2=x2_0*backside
+                yp2=y2_0
+                x2=-yp2
+                y2=xp2
+                
+                v1=array([x1,y1])
+                vp1=array([xp1,yp1])
+                v2=array([x2,y2])
+                vp2=array([xp2,yp2])
+                dv=subtract(v2,v1)
+                dvp=subtract(vp2,vp1)
+                vlen=norm(dv)
+                vplen=norm(dvp)
+                c = dot(dv,dvp)/(vlen*vplen)
+                radians = arccos(c)
+                scale = vlen / vplen
+
+                #### entire pcb (nc drills file)
+                data = gerber.read(self.nc_file_path)
+                data.to_metric()
+                xmin = 100000
+                ymin = 100000
+                for hit in data.hits:
+                    x, y = hit.position
+                    v2_1 = array([x, y])
+                    x, y = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
+                    radius = hit.tool.diameter/2
+                    xmin = min(x-radius, xmin)
+                    ymin = min(y-radius, ymin)
+
+                xmin, ymin = round(xmin, 5), round(ymin, 5) # to get origin point(xmin, ymin)
+                #print(xmin, ymin, "###### min ######")
+
+                #self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
+                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                #### selected pcb (only selected drills info)
+                
+                data = gerber.read(self.sel_tool_path)
+                data.to_metric()
+
+                for hit in data.hits:
+                    x, y = hit.position
+                    v2_1 = array([x, y])
+                    x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
+                    # 3d printer points based on (left, bottom) == (0, 0)
+                    PosX, PosY = round((x0-xmin), 5), round((y0-ymin), 5)
+                    PosZ = 10 # ????where is this value defined?
+
+                    ApproxX = PosX-ApproxOffsetX
+                    ApproxY = PosY-ApproxOffsetY
+                    ApproxZ = PosZ-ApproxOffsetZ
+                    SolderX = PosX-SolderOffsetX 
+                    SolderY = PosY-SolderOffsetY
+                    SolderZ = PosZ-SolderOffsetZ  
+
+                    gcode.append("G1 Z" + str(TravelZ) + " F600" + "")
+                    gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600")
+                    gcode.append("G4 P500")
+                    gcode.append("G1 Z" + str(ApproxZ) + " F300")
+                    gcode.append("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300")
+                    gcode.append("G4 P" + str(Heatup))
+                    gcode.append("G1 E" + str(SolderLength) + " F1000")
+                    gcode.append("G4 P" + str(Melting))
+                    gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300")
+                    gcode.append("G1 Z" + str(TravelZ) + " F600")
+                
+                #### ????
+                # i think i should add gcode for panel here, how way ?
+                ####
+                for line in StringIO(self.g_footer):
+                    gcode.append(line.strip())
+
+                print(gcode)
+                # or pass in your own array of gcode lines instead of reading from a file
+                gcode = gcoder.LightGCode(gcode)
+                #self.print.startprint(gcode) # this will start a print
+                self.b_started = True
         
-        if self.b_start_soldering:
+        if self.b_start_soldering and self.b_started:
             self.b_start_soldering = False
             self.ids["btn_start"].text = "pause soldering"
             #self.print.resume()
-        else:
+        elif self.b_start_soldering == False and self.b_started:
             self.b_start_soldering = True
             self.ids["btn_start"].text = "resume soldering"
             #If you need to interact with the printer:
-            self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
+            #self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
             #self.print.pause() # use these to pause/resume the current print
     
     def stop_soldering(self):
@@ -830,6 +909,8 @@ class ListScreen(Screen):
 
     def dismiss_popup(self):
         self._popup.dismiss()
+
+    
 
     def show_status(self, dt):
         if  self.ids is not "":
