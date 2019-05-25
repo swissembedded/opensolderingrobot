@@ -811,7 +811,7 @@ class ListScreen(Screen):
                 
                 SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
                 SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
-                SolderOffsetZ= 10 # ???? where is this value define?
+                SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
 
                 ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
                 ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
@@ -872,7 +872,7 @@ class ListScreen(Screen):
                     x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
                     # 3d printer points based on (left, bottom) == (0, 0)
                     PosX, PosY = round((x0-xmin), 5), round((y0-ymin), 5)
-                    PosZ = 10 # ????where is this value defined?
+                    PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
 
                     ApproxX = PosX-ApproxOffsetX
                     ApproxY = PosY-ApproxOffsetY
