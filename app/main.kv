@@ -56,7 +56,7 @@
                             on_press: root.save_as_file()
                         ActionButton:
                             text: 'Exit Project'
-                            on_press: app.stop()
+                            on_press: root.exit_app()
                     ActionGroup:
                         text: 'Program'
                         size_hint_x: 0.25 
@@ -283,3 +283,25 @@
                 size_hint_y: None
                 height: 40
                 on_release: root.save(text_port.text)
+################
+<ErrorDialog>:
+    title: "NOTICE"
+    font_size: 32
+    size_hint: None, None
+    size: 400, 250
+    auto_dismiss: True
+    BoxLayout:
+        orientation: "vertical"
+        BoxLayout:
+            orientation: "vertical"
+            Label:
+                font_size: 18
+                align: 'center'
+                background_color: (0,0,0,1)
+                text: "Please select correct excellon file"
+            BoxLayout:
+                orientation: "horizontal"
+                Button:
+                    size_hint: 0.5, 0.5
+                    text: "OK"
+                    on_release: root.dismiss()

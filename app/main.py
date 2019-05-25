@@ -97,7 +97,11 @@ data = {
                         # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "ListPopup":"Weidmuller Conn Term"}
                         ]
         }
-
+def assure_path_exists(path):
+    dir = os.path.dirname(path)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+assure_path_exists("temp/")
 class TouchImage(Image):
 
     def on_touch_down(self, touch):
@@ -196,6 +200,10 @@ class ListPopup(BoxLayout):
 class EditPopup(BoxLayout):
     save = ObjectProperty(None)
     cancel = ObjectProperty(None)
+class ErrorDialog(Popup):
+    def __init__(self, obj, **kwargs):
+        super(ErrorDialog, self).__init__(**kwargs)
+        self.obj = obj
 class ScreenManagement(ScreenManager):
     pass
 
@@ -262,6 +270,9 @@ class ListScreen(Screen):
         except Exception as e:
             pass  
     #### File menu
+    def exit_app(self):
+        self.capture.stop()
+        App.get_running_app().stop()
     def new_file(self):
         self.init_project()
 
@@ -375,48 +386,54 @@ class ListScreen(Screen):
         self.item_nc_tools.clear()
         self.nc_file_path = filename[0]
         # Read gerber and Excellon files
-        data = gerber.read(self.nc_file_path)
-        for tool in iter(data.tools.values()):
-            self.item_nc_tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
-        #print(data.tools)
-        #print(data.settings)
-        #print(data.hits)
-        #print(data.report())
-        hit_info.clear()
-        
-        xmin = 100000
-        xmax = -100000
-        ymin = 100000
-        ymax = -100000
-        for hit in data.hits:
-            x, y = hit.position
-            radius = hit.tool.diameter/2
-            hit_info.append([x*10, y*10, radius*10, hit.tool.number])
-            xmin = min(x-radius, xmin)
-            xmax = max(x+radius, xmax)
-            ymin = min(y-radius, ymin)
-            ymax = max(y+radius, ymax)
-        
-        bound_box["width"] = round((xmax-xmin)*10)
-        bound_box["height"] = round((ymax-ymin)*10)
-        bound_box["x"] = round(xmin*10)
-        bound_box["y"] = round(ymin*10)
-        
-        self.nc_hits = data.hits
-        self.nc_tools = data.tools
+        try:
+            data = gerber.read(self.nc_file_path)
+            for tool in iter(data.tools.values()):
+                self.item_nc_tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
+            #print(data.tools)
+            #print(data.settings)
+            #print(data.hits)
+            #print(data.report())
+            hit_info.clear()
+            
+            xmin = 100000
+            xmax = -100000
+            ymin = 100000
+            ymax = -100000
+            for hit in data.hits:
+                x, y = hit.position
+                radius = hit.tool.diameter/2
+                hit_info.append([x*10, y*10, radius*10, hit.tool.number])
+                xmin = min(x-radius, xmin)
+                xmax = max(x+radius, xmax)
+                ymin = min(y-radius, ymin)
+                ymax = max(y+radius, ymax)
+            
+            bound_box["width"] = round((xmax-xmin)*10)
+            bound_box["height"] = round((ymax-ymin)*10)
+            bound_box["x"] = round(xmin*10)
+            bound_box["y"] = round(ymin*10)
+            
+            self.nc_hits = data.hits
+            self.nc_tools = data.tools
 
-        data.to_metric()
-        # Rendering context
-        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
-        #self.optmize_nc(filename)
-        # Create SVG image
-        data.render(ctx)
-        ctx.dump("temp_origin.png")
-        self.cad_img_origin_path = "temp_origin.png"
+            data.to_metric()
+            # Rendering context
+            ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
+            #self.optmize_nc(filename)
+            # Create SVG image
+        
+            data.render(ctx)
+        except:
+            popup = ErrorDialog(self)
+            popup.open()
+            return
+        ctx.dump("./temp/temp_origin.png")
+        self.cad_img_origin_path = "./temp/temp_origin.png"
         self.ids["img_cad_origin"].source = self.cad_img_origin_path
         self.ids["img_cad_origin"].reload()
         # get real image size
-        im = pil_image.open('temp_origin.png')
+        im = pil_image.open('./temp/temp_origin.png')
         real_img_size["width"], real_img_size["height"] = im.size
         
         # show image with selected tool(dia)
@@ -507,7 +524,7 @@ class ListScreen(Screen):
         
         with open(self.nc_file_path, 'rU') as f:
             data = f.read()
-        self.sel_tool_path = "sel_dia_excellon.txt"
+        self.sel_tool_path = "./temp/sel_dia_excellon.txt"
         with open(self.sel_tool_path, 'w') as wf:
             for line in StringIO(data):
                 line_temp = line.strip()
@@ -530,8 +547,8 @@ class ListScreen(Screen):
         data.to_metric()
         ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
         data.render(ctx)
-        ctx.dump("temp_selected.png")
-        self.cad_img_sel_path = "temp_selected.png"
+        ctx.dump("./temp/temp_selected.png")
+        self.cad_img_sel_path = "./temp/temp_selected.png"
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
     def select_by_view(self):
@@ -590,12 +607,12 @@ class ListScreen(Screen):
                 else:
                     wf.write(line_temp + '\n')
         wf.close()
-        data = gerber.read("aaa.txt")
+        data = gerber.read("./temp/aaa.txt")
         data.to_metric()
         ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
         data.render(ctx)
-        ctx.dump("temp_selected.png")
-        self.cad_img_sel_path = "temp_selected.png"
+        ctx.dump("./temp/temp_selected.png")
+        self.cad_img_sel_path = "./temp/temp_selected.png"
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
         
@@ -941,4 +958,4 @@ class MyApp(App):
 if __name__ == '__main__':
     Builder.load_file("main.kv")
     MyApp().run()
-    
+    cv2.destroyAllWindows()
