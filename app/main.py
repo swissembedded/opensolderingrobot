@@ -200,6 +200,11 @@ class ListPopup(BoxLayout):
 class EditPopup(BoxLayout):
     save = ObjectProperty(None)
     cancel = ObjectProperty(None)
+class ControlPopup(BoxLayout):
+    controlXYZ = ObjectProperty(None)
+    goXYZ = ObjectProperty(None)
+    saveXYZ = ObjectProperty(None)
+    cancel = ObjectProperty(None)
 class ErrorDialog(Popup):
     def __init__(self, obj, **kwargs):
         super(ErrorDialog, self).__init__(**kwargs)
@@ -241,7 +246,7 @@ class ListScreen(Screen):
         self.solder_settings = ""
         self.reference_1 = ""
         self.reference_2 = ""
-
+        self.reference_printer = {"1":[(0.0,0.0,0.0)], "2":[(0.0,0.0,0.0)]}
         #### port settings 
         self.cam_port = ""
         self.printer_port = ""
@@ -252,13 +257,14 @@ class ListScreen(Screen):
         self.print = None
         #### camera capture 
         self.capture = None
+        self.current_printer_point = {"X":0,"Y":0, "Z":0}
 
         Clock.schedule_interval(self.init_gui, 0.2)
         #Clock.schedule_interval(self.show_status, 0.8)
     def init_gui(self, dt):
         self.new_file()
         Clock.unschedule(self.init_gui) 
-        Clock.schedule_interval(self.cam_update, 0.01) 
+        Clock.schedule_interval(self.cam_update, 0.03) 
     def cam_update(self, dt):
         try:
             _, frame = self.capture.read()
@@ -558,7 +564,7 @@ class ListScreen(Screen):
         
         with open(self.nc_file_path, 'rU') as f:
             data = f.read()
-        with open("aaa.txt", 'w') as wf:
+        with open("./temp/aaa.txt", 'w') as wf:
             pre_x, pre_y = "", ""
             for line in StringIO(data):
                 line_temp = line.strip()
@@ -751,21 +757,73 @@ class ListScreen(Screen):
         self._popup.open()
     def save_panel_num(self, txt_port):
         self.panel_num  = int(txt_port)
+        self.reference_printer["1"] = [(0.0,0.0,0.0)]*self.panel_num
+        self.reference_printer["2"] = [(0.0,0.0,0.0)]*self.panel_num
+        
         self.dismiss_popup()
 
     def set_reference_panel(self):
-        content = EditPopup(save=self.save_refrence_panel, cancel=self.dismiss_popup)
-        content.ids["text_port"].text = str(1)
-        content.ids["btn_connect"].text = "Save"
-        self._popup = Popup(title="Select panel num", content=content,
-                            size_hint=(0.5, 0.4))
+        self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
+        
+        self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
+        self.content.ids["cur_X"].text = str(self.current_printer_point["X"])
+        self.content.ids["cur_Y"].text = str(self.current_printer_point["Y"])
+        self.content.ids["cur_Z"].text = str(self.current_printer_point["Z"])
+        self.content.ids["cur_panel"].text = str(self.cur_panel_num)
+
+        #?self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
+        gcode=[line.strip() for line in StringIO(self.g_header)] 
+        gcode1 = gcoder.LightGCode(gcode)
+        #?self.print.startprint(gcode1)        
+        
+        self._popup = Popup(title="Set reference point", content=self.content,
+                            size_hint=(0.5, 0.5))
         self._popup.open()
-    def save_refrence_panel(self, txt_port):
-        self.cur_panel_num  = int(txt_port)
-        self.dismiss_popup()
-        # this part set reference panel N
-        #
-        ######
+    def control_XYZ(self, axis, value):
+        if axis == "X":
+            self.current_printer_point["X"] += float(value)
+        elif axis == "Y":
+            self.current_printer_point["Y"] += float(value)
+        elif axis == "Z":
+            if value == 0:
+                self.current_printer_point["Z"] = 0
+            else:
+                self.current_printer_point["Z"] += float(value)
+        else:
+            self.current_printer_point["X"] = 0
+            self.current_printer_point["Y"] = 0
+
+        self.current_printer_point["X"] = round(self.current_printer_point["X"], 5)
+        self.current_printer_point["Y"] = round(self.current_printer_point["Y"], 5)
+        self.current_printer_point["Z"] = round(self.current_printer_point["Z"], 5)
+        
+        self.content.ids["cur_X"].text = str(self.current_printer_point["X"])
+        self.content.ids["cur_Y"].text = str(self.current_printer_point["Y"])
+        self.content.ids["cur_Z"].text = str(self.current_printer_point["Z"])
+        #### go to printer point (gcode sent)
+        #?self.print.send("G1 X"+self.current_printer_point["X"]+" Y"+self.current_printer_point["Y"]+" Z"+self.current_printer_point["Z"]+" F300;")
+        
+    def go_XYZ(self, next_x, next_y, next_z):
+        
+        self.current_printer_point["X"] = round(next_x, 5)
+        self.current_printer_point["Y"] = round(next_y, 5)
+        self.current_printer_point["Z"] = round(next_z, 5)
+        #### go to printer point (gcode sent)
+        #?self.print.send("G1 X"+self.current_printer_point["X"]+" Y"+self.current_printer_point["Y"]+" Z"+self.current_printer_point["Z"]+" F300;")
+        
+    def save_XYZ(self, cur_panel, cur_x, cur_y, cur_z, refer):
+        try:
+            if int(cur_panel) <= self.panel_num and int(cur_panel)>=1:
+                self.cur_panel_num = int(cur_panel)
+                if refer == 1:
+                    self.reference_printer["1"][int(cur_panel)-1] = (float(cur_x), float(cur_y), float(cur_z))
+                else:
+                    self.reference_printer["2"][int(cur_panel)-1] = (float(cur_x), float(cur_y), float(cur_z))
+            else:
+                print("please enter 1~" + str(self.panel_num))
+        except:
+            print("please enter correct current panel")
+        
     #### Connect menu
     def set_printer(self):
         content = EditPopup(save=self.save_printer_port, cancel=self.dismiss_popup)
@@ -803,6 +861,12 @@ class ListScreen(Screen):
     def start_soldering(self):
         if self.ids["btn_start"].text == "start soldering":
             if self.reference_1 != "" and self.reference_2 != "":
+                #?self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
+                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                # or pass in your own array of gcode lines instead of reading from a file
+                gcode1 = gcoder.LightGCode(gcode)
+                #?self.print.startprint(gcode1) # this will start a print
+                self.b_started = True
                 
                 TravelZ = self.sel_sol_profile_settings["TravelZ"]
                 SolderLength = self.sel_sol_profile_settings["SolderLength"]
@@ -816,110 +880,121 @@ class ListScreen(Screen):
                 ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
                 ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
                 ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
-                print(self.reference_2)
-                x1_0, y1_0 = self.reference_1[0], self.reference_1[1]
-                x2_0, y2_0 = self.reference_2[0], self.reference_2[1]
-                
-                backside=1 # set backside to -1 on bottom layer
-                xp1=x1_0*backside
-                yp1=y1_0
-                x1=-yp1
-                y1=xp1
-                
-                xp2=x2_0*backside
-                yp2=y2_0
-                x2=-yp2
-                y2=xp2
-                
-                v1=array([x1,y1])
-                vp1=array([xp1,yp1])
-                v2=array([x2,y2])
-                vp2=array([xp2,yp2])
-                dv=subtract(v2,v1)
-                dvp=subtract(vp2,vp1)
-                vlen=norm(dv)
-                vplen=norm(dvp)
-                c = dot(dv,dvp)/(vlen*vplen)
-                radians = arccos(c)
-                scale = vlen / vplen
+                ######## for each panel
+                for k in range(len(self.reference_printer["1"])):
+                    if self.reference_printer["1"][k][0] == 0.0 and self.reference_printer["1"][k][1] == 0.0:
+                        continue
+                    if self.reference_printer["2"][k][0] == 0.0 and self.reference_printer["2"][k][1] == 0.0:
+                        continue
+                    
+                    # nc drill reference point
+                    xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
+                    xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
+                    
 
-                #### entire pcb (nc drills file)
-                data = gerber.read(self.nc_file_path)
-                data.to_metric()
-                xmin = 100000
-                ymin = 100000
-                for hit in data.hits:
-                    x, y = hit.position
-                    v2_1 = array([x, y])
-                    x, y = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
-                    radius = hit.tool.diameter/2
-                    xmin = min(x-radius, xmin)
-                    ymin = min(y-radius, ymin)
+                    backside=1 # set backside to -1 on bottom layer
+                    xp1=xp1_0*backside
+                    yp1=yp1_0
+                    
+                    # 3d printer reference point 1 for k' th panel
+                    x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
+                                        
+                    xp2=xp2_0*backside
+                    yp2=yp2_0
+                    
+                    # 3d printer reference point 2 for k' th panel
+                    x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
+                    
+                    v1=array([x1,y1])
+                    vp1=array([xp1,yp1])
+                    v2=array([x2,y2])
+                    vp2=array([xp2,yp2])
+                    dv=subtract(v2,v1)
+                    dvp=subtract(vp2,vp1)
+                    vlen=norm(dv)
+                    vplen=norm(dvp)
+                    c = dot(dv,dvp)/(vlen*vplen)
+                    radians = arccos(c)
+                    scale = vlen / vplen
 
-                xmin, ymin = round(xmin, 5), round(ymin, 5) # to get origin point(xmin, ymin)
-                #print(xmin, ymin, "###### min ######")
+                    
+                    
+                    data = gerber.read(self.sel_tool_path)
+                    data.to_metric()
+                    gcode.append("; panel " + str(k+1) + " start")
+                    for hit in data.hits:
+                        x, y = hit.position
+                        v2_1 = array([x, y])
+                        x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
+                        # 3d printer points based on (left, bottom) == (0, 0)
+                        PosX, PosY = round((x0), 5), round((y0), 5)
+                        PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
 
-                #self.print = printcore(self.print_port, 115200) # or p.printcore('COM3',115200) on Windows
-                gcode=[line.strip() for line in StringIO(self.g_header)] 
-                #### selected pcb (only selected drills info)
-                
-                data = gerber.read(self.sel_tool_path)
-                data.to_metric()
+                        ApproxX = round((PosX-ApproxOffsetX),5)
+                        ApproxY = round((PosY-ApproxOffsetY),5)
+                        ApproxZ = round((PosZ-ApproxOffsetZ),5)
+                        SolderX = round((PosX-SolderOffsetX),5)
+                        SolderY = round((PosY-SolderOffsetY),5)
+                        SolderZ = round((PosZ-SolderOffsetZ),5)
 
-                for hit in data.hits:
-                    x, y = hit.position
-                    v2_1 = array([x, y])
-                    x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
-                    # 3d printer points based on (left, bottom) == (0, 0)
-                    PosX, PosY = round((x0-xmin), 5), round((y0-ymin), 5)
-                    PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
+                        print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
 
-                    ApproxX = PosX-ApproxOffsetX
-                    ApproxY = PosY-ApproxOffsetY
-                    ApproxZ = PosZ-ApproxOffsetZ
-                    SolderX = PosX-SolderOffsetX 
-                    SolderY = PosY-SolderOffsetY
-                    SolderZ = PosZ-SolderOffsetZ  
-
-                    gcode.append("G1 Z" + str(TravelZ) + " F600" + "")
-                    gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600")
-                    gcode.append("G4 P500")
-                    gcode.append("G1 Z" + str(ApproxZ) + " F300")
-                    gcode.append("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300")
-                    gcode.append("G4 P" + str(Heatup))
-                    gcode.append("G1 E" + str(SolderLength) + " F1000")
-                    gcode.append("G4 P" + str(Melting))
-                    gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300")
-                    gcode.append("G1 Z" + str(TravelZ) + " F600")
-                
+                        #?self.print.send("G1 Z" + str(TravelZ) + " F600" + "; travel level on z")
+                        #?self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
+                        #?self.print.send("G4 P500;wait 500ms ")
+                        #?self.print.send("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
+                        #?self.print.send("G4 P500;wait 500ms ")
+                        #?self.print.send("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
+                        #?self.print.send("G4 P" + str(Heatup) + "")
+                        #?self.print.send("G1 E" + str(SolderLength) + " F1000")
+                        #?self.print.send("G4 P" + str(Melting) + " ;wait for solder melting on pad")
+                        #?self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
+                        #?self.print.send("G1 Z" + str(TravelZ) + " F600")
+                        #?self.print.send("G1 Z" + str(TravelZ) + " F600" + "; travel level on z")
+                        ###### gcode ####
+                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
+                        gcode.append("G4 P500;wait 500ms ")
+                        gcode.append("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
+                        gcode.append("G4 P500;wait 500ms ")
+                        gcode.append("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
+                        gcode.append("G4 P" + str(Heatup) + "")
+                        gcode.append("G1 E" + str(SolderLength) + " F1000")
+                        gcode.append("G4 P" + str(Melting) + " ;wait for solder melting on pad")
+                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
+                        gcode.append("G1 Z" + str(TravelZ) + " F600")
+                    
                 #### ????
                 # i think i should add gcode for panel here, how way ?
                 # Panel is just a loop over above, with new set of reference points
                 ####
+               
                 for line in StringIO(self.g_footer):
-                    gcode.append(line.strip())
+                    pass
+                    #?self.print.send(line.strip())
 
-                print(gcode)
-                # or pass in your own array of gcode lines instead of reading from a file
-                gcode = gcoder.LightGCode(gcode)
-                #self.print.startprint(gcode) # this will start a print
-                self.b_started = True
+                with open("./temp/gcode.txt", 'w') as wf:
+                    print(gcode)
+                    for temp in gcode:
+                        wf.write(temp+"\n")
+                wf.close()
+                #print(gcode)
+                
         
         if self.b_start_soldering and self.b_started:
             self.b_start_soldering = False
             self.ids["btn_start"].text = "pause soldering"
-            #self.print.resume()
+            #?self.print.resume()
         elif self.b_start_soldering == False and self.b_started:
             self.b_start_soldering = True
             self.ids["btn_start"].text = "resume soldering"
             #If you need to interact with the printer:
-            #self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
-            #self.print.pause() # use these to pause/resume the current print
+            #?self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
+            #?self.print.pause() # use these to pause/resume the current print
     
     def stop_soldering(self):
         # this is how you disconnect from the printer once you are done. 
         #This will also stop running prints.    
-        #self.print.disconnect() 
+        #?self.print.disconnect() 
         self.ids["btn_start"].text = "start soldering"
         pass
     def test_soldering(self):

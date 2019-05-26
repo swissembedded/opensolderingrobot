@@ -161,6 +161,7 @@
             size_hint_y:0.72
             padding: 3
             TabbedPanel:
+                id: tab_panel
                 do_default_tab: False
                 TabbedPanelItem:
                     text: ' CAD '
@@ -305,3 +306,630 @@
                     size_hint: 0.5, 0.5
                     text: "OK"
                     on_release: root.dismiss()
+####################
+    
+<ControlPopup>
+    BoxLayout:
+        orientation: 'horizontal'
+        padding:4
+        BoxLayout:
+            size_hint_x: 0.65
+            orientation: 'vertical'
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', 10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', 10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', 1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', 1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', 0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', 0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'    
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', -10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', -1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', -0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('XY', 0)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        padding: 5
+                        Image:
+                            source: 'home.png'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', 0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', 1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('X', 10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'X'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'plus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                           
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', 0)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        padding: 5
+                        Image:
+                            source: 'home.png'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', -0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', -0.1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '0.1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', -1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', -1)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '1'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                padding: 1
+                Label:
+                    text: ''
+                    size_hint_x: 0.3
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Y', -10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Y'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                Label:
+                    text: ''
+                    size_hint_x: 0.35
+                Button:
+                    size_hint_x: 0.1
+                    on_press: root.controlXYZ('Z', -10)
+                    BoxLayout:
+                        pos: self.parent.pos
+                        size: self.parent.size
+                        orientation: 'vertical'
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y:0.5
+                            Label:
+                                text:'Z'
+                                size_hint_x:0.5
+                            Image:
+                                size_hint_x:0.4
+                                source: 'minus.png'
+                            Label:
+                                text:''
+                                size_hint_x:0.1
+                        BoxLayout:
+                            size_hint_y: 0.5
+                            Label:
+                                text: '10'
+                Label:
+                    text: ''
+                    size_hint_x: 0.05    
+                            
+        BoxLayout:
+            size_hint_x: 0.35
+            orientation: 'vertical'
+            BoxLayout:
+                size_hint_y: 0.1
+                orientation: 'horizontal'
+                Label:
+                    size_hint: 0.7, None
+                    text: 'Current Panel:'
+                    font_size: 18
+                    height: 35
+                TextInput:
+                    id: cur_panel
+                    font_size: 18
+                    size_hint: 0.3, None
+                    height: 35
+                    multiline: False
+            BoxLayout:
+                size_hint_y: 0.1
+                orientation: 'horizontal'
+                Label:
+                    size_hint: 0.5, None
+                    text: 'Current X:'
+                    font_size: 18
+                    height: 35
+                TextInput:
+                    id: cur_X
+                    font_size: 18
+                    size_hint: 0.5, None
+                    height: 35
+                    multiline: False
+            BoxLayout:
+                size_hint_y: 0.1
+                orientation: 'horizontal'
+                Label:
+                    size_hint: 0.5, None
+                    text: 'Current Y:'
+                    font_size: 18
+                    height: 35
+                TextInput:
+                    id: cur_Y
+                    font_size: 18
+                    size_hint: 0.5, None
+                    height: 35
+                    multiline: False
+            BoxLayout:
+                size_hint_y: 0.1
+                orientation: 'horizontal'
+                Label:
+                    size_hint: 0.5, None
+                    text: 'Current Z:'
+                    font_size: 18
+                    height: 35
+                TextInput:
+                    id: cur_Z
+                    font_size: 18
+                    size_hint: 0.5, None
+                    height: 35
+                    multiline: False
+            BoxLayout:
+                size_hint_y: 0.2
+                orientation: 'horizontal'
+                Label:
+                    text: ""
+                    size_hint_y: None
+                    height: 40
+                Button:
+                    text: "GO!"
+                    size_hint_y: None
+                    height: 40
+                    on_release: root.goXYZ(cur_X.text, cur_Y.text, cur_Z.text)
+                Label:
+                    text: ""
+                    size_hint_y: None
+                    height: 40
+            BoxLayout:
+                size_hint_y: 0.2
+                orientation: 'horizontal'
+                Button:
+                    text: "Close"
+                    size_hint_y: None
+                    height: 40
+                    on_release: root.cancel()
+                Button:
+                    text: "Set 1"
+                    size_hint_y: None
+                    height: 40
+                    on_release: root.saveXYZ(cur_panel.text, cur_X.text, cur_Y.text, cur_Z.text, 1)
+                Button:
+                    text: "Set 2"
+                    size_hint_y: None
+                    height: 40
+                    on_release: root.saveXYZ(cur_panel.text, cur_X.text, cur_Y.text, cur_Z.text, 2)
+        
