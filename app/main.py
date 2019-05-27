@@ -274,6 +274,7 @@ class ListScreen(Screen):
             texture1.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.ids['img_cam'].texture = texture1
         except Exception as e:
+            print(e, " cam_upadate")
             pass  
     #### File menu
     def exit_app(self):
@@ -334,7 +335,8 @@ class ListScreen(Screen):
         try:
             self.capture = VideoCaptureAsync(self.cam_port)
             self.capture.start()
-        except:
+        except Exception as e:
+            print(e, "cam start")
             pass
         
     def make_JSON(self):
@@ -847,6 +849,7 @@ class ListScreen(Screen):
             self.capture = VideoCaptureAsync(self.cam_port)
             self.capture.start()
         except  Exception as e:
+            print(e," save cam port")
             pass
         self.dismiss_popup()
     def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0,0)):
@@ -937,7 +940,7 @@ class ListScreen(Screen):
                         SolderY = round((PosY-SolderOffsetY),5)
                         SolderZ = round((PosZ-SolderOffsetZ),5)
 
-                        print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
+                        #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
 
                         #?self.print.send("G1 Z" + str(TravelZ) + " F600" + "; travel level on z")
                         #?self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
