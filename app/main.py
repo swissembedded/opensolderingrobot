@@ -432,7 +432,8 @@ class ListScreen(Screen):
             # Create SVG image
         
             data.render(ctx)
-        except:
+        except Exception as e:
+            print(e, "Load NC Drills")
             popup = ErrorDialog(self)
             popup.open()
             return
