@@ -345,6 +345,9 @@ class ListScreen(Screen):
 
         self.project_file_path = ""
         try:
+            if self.capture is not None:
+                self.capture.stop()
+                self.capture = None
             self.capture = VideoCaptureAsync(self.cam_port)
             self.capture.start()
             self.status_cam = "Camera connected"
@@ -1037,7 +1040,11 @@ class ListScreen(Screen):
     def stop_soldering(self):
         # this is how you disconnect from the printer once you are done. 
         #This will also stop running prints.    
-        self.print.disconnect() 
+        self.print.disconnect()
+        self.print = None
+         
+        self.status_printer = " 3d printer disconnected"
+        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
         self.ids["btn_start"].text = "start soldering"
         self.b_test_started = False
         self.b_started = False
