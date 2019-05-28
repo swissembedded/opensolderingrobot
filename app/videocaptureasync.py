@@ -3,14 +3,13 @@ import cv2
 
 class VideoCaptureAsync:
     def __init__(self, src=0, width=640, height=480):
-        self.src = src
-        self.cap = cv2.VideoCapture(self.src)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-        print(self.fps, "######")
-        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+        try:
+            self.src = int(src)
+        except:
+            self.src = src
 
+        self.cap = cv2.VideoCapture(self.src)
+        print ("After cap.grab() --> " + str(self.cap.grab()) + "\n")
         self.grabbed, self.frame = self.cap.read()
         self.started = False
         self.read_lock = threading.Lock()

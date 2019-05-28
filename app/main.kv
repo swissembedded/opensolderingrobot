@@ -185,8 +185,16 @@
                     BoxLayout:
                         orientation: 'horizontal'
                         size_hint: 1, 1
-                        Image:
-                            id: img_cam
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint: 0.7, 1
+                            Image:
+                                id: img_cam
+                                size_hint: 1, 1
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_x: 0.3        
+                        
 
         ####### status part ######
         # footer part    
@@ -214,7 +222,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
-            filters: ['*.txt','*.TXT']
+            filters: ['*.txt','*.TXT', '*.json']
         BoxLayout:
             size_hint_y: None
             height: 30
@@ -234,6 +242,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
+            filters: ['*.txt','*.TXT', '*.json']
             on_selection: text_input.text = self.selection and self.selection[0] or ''
 
         TextInput:
