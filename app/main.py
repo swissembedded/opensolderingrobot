@@ -48,7 +48,7 @@ except(ImportError):
 from printrun.printcore import printcore
 from printrun import gcoder
 # to make g-code 
-import math
+
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
 from numpy.linalg import norm
 
@@ -267,7 +267,7 @@ class ListScreen(Screen):
         self.status_printer = ""
 
         Clock.schedule_interval(self.init_gui, 0.2)
-        #Clock.schedule_interval(self.show_status, 0.8)
+        Clock.schedule_interval(self.show_status, 1)
     def init_gui(self, dt):
         self.new_file()
         Clock.unschedule(self.init_gui) 
@@ -286,6 +286,9 @@ class ListScreen(Screen):
     def exit_app(self):
         if self.capture is not None:
             self.capture.stop()
+        if self.print is not None:
+            self.print.disconnect()
+            self.print = None
         App.get_running_app().stop()
     def new_file(self):
         self.init_project()
@@ -410,8 +413,13 @@ class ListScreen(Screen):
         self._popup.open()
 
     def load(self, path, filename):
-        with open(filename[0]) as json_data:
-            dic_data = json.load(json_data) 
+        try:
+            with open(filename[0]) as json_data:
+                dic_data = json.load(json_data) 
+        except Exception as e:
+            print(e, " ==> please select correct project file")
+            self.dismiss_popup()
+            return
         self.setup_settings = dic_data["Setup"]
         self.sol_profile_settings = dic_data["SolderingProfile"]
         self.sel_sol_profile_settings = dic_data["SelectedSolderingProfile"]
@@ -812,6 +820,11 @@ class ListScreen(Screen):
             self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
             gcode=[line.strip() for line in StringIO(self.g_header)] 
             gcode1 = gcoder.LightGCode(gcode)
+            while not self.print.online: 
+                self.status_printer = " 3d printer connecting..."
+                self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                time.sleep(0.1)
+                
             self.print.startprint(gcode1)
             self.status_printer = " 3d printer connected"
             self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam       
@@ -910,12 +923,19 @@ class ListScreen(Screen):
             if self.reference_1 != "" and self.reference_2 != "":
                 if self.print is None:
                     self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-                    gcode=[line.strip() for line in StringIO(self.g_header)] 
-                    # or pass in your own array of gcode lines instead of reading from a file
-                    gcode1 = gcoder.LightGCode(gcode)
-                    self.print.startprint(gcode1) # this will start a print
+                    while not self.print.online: 
+                        self.status_printer = " 3d printer connecting..."
+                        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                        time.sleep(0.1)
+                        
                     self.status_printer = " 3d printer connected"
                     self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+
+                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                # or pass in your own array of gcode lines instead of reading from a file
+                gcode1 = gcoder.LightGCode(gcode)
+                self.print.startprint(gcode1) # this will start a print
+                    
                 self.b_started = True
                 
                 TravelZ = self.sel_sol_profile_settings["TravelZ"]
@@ -1015,8 +1035,8 @@ class ListScreen(Screen):
                 
                
                 for line in StringIO(self.g_footer):
-                    pass
                     self.print.send(line.strip())
+                    gcode.append(line.stip())
 
                 with open("./temp/gcode.txt", 'w') as wf:
                     print(gcode)
@@ -1040,12 +1060,14 @@ class ListScreen(Screen):
     def stop_soldering(self):
         # this is how you disconnect from the printer once you are done. 
         #This will also stop running prints.    
-        self.print.disconnect()
-        self.print = None
-         
+        if self.print is not None:
+            self.print.disconnect()
+            self.print = None
+
         self.status_printer = " 3d printer disconnected"
         self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
         self.ids["btn_start"].text = "start soldering"
+        self.ids["btn_test"].text = "test soldering"
         self.b_test_started = False
         self.b_started = False
         
@@ -1054,12 +1076,20 @@ class ListScreen(Screen):
             if self.reference_1 != "" and self.reference_2 != "":
                 if self.print is None:
                     self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-                    gcode=[line.strip() for line in StringIO(self.g_header)] 
-                    # or pass in your own array of gcode lines instead of reading from a file
-                    gcode1 = gcoder.LightGCode(gcode)
-                    self.print.startprint(gcode1) # this will start a print
+                     # this will start a print
+                    while not self.print.online: 
+                        self.status_printer = " 3d printer connecting..."
+                        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                        time.sleep(0.1)
+                        
                     self.status_printer = " 3d printer connected"
                     self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                
+                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                # or pass in your own array of gcode lines instead of reading from a file
+                gcode1 = gcoder.LightGCode(gcode)
+                self.print.startprint(gcode1)
+
                 self.b_test_started = True
                 
                 TravelZ = self.sel_sol_profile_settings["TravelZ"]
@@ -1110,8 +1140,6 @@ class ListScreen(Screen):
                     c = dot(dv,dvp)/(vlen*vplen)
                     radians = arccos(c)
                     scale = vlen / vplen
-
-                    
                     
                     data = gerber.read(self.sel_tool_path)
                     data.to_metric()
@@ -1157,8 +1185,8 @@ class ListScreen(Screen):
                 
                
                 for line in StringIO(self.g_footer):
-                    pass
                     self.print.send(line.strip())
+                    gcode.append(line.stip())
 
                 with open("./temp/gcode_test.txt", 'w') as wf:
                     print(gcode)
@@ -1186,8 +1214,23 @@ class ListScreen(Screen):
 
     def show_status(self, dt):
         if  self.ids is not "":
-            self.ids["lbl_cad_cam"].text = " Camera connected"  
-            self.ids["lbl_solder_status"].text = " soldering 1/N pads on panel 2/M"
+            if self.print is not None: 
+                try:
+                    (layer, line) = self.print.mainqueue.idxs(self.print.queueindex)
+                    gline = self.print.mainqueue.all_layers[layer][line]
+                    #print(gline.raw)
+                    self.ids["lbl_solder_status"].text = str(gline.raw)[0:70]#" soldering 1/N pads on panel 2/M"
+                    
+                    if str(gline.raw) == "G1 X0 Y0 F600 ; end":
+                        self.print.disconnect()
+                        self.print = None
+                        self.status_printer = " 3d printer disconnected"
+                        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                except:
+                    self.print.disconnect()
+                    self.print = None
+                    self.status_printer = " 3d printer disconnected"
+                    self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
 
 class MyApp(App):
     
