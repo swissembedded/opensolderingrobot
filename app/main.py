@@ -1,7 +1,7 @@
 
 ############ Susanna edited #########
 
-from time import time
+import time
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ObjectProperty
@@ -48,7 +48,7 @@ except(ImportError):
 from printrun.printcore import printcore
 from printrun import gcoder
 # to make g-code 
-
+import math
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
 from numpy.linalg import norm
 
@@ -66,37 +66,6 @@ hit_info = []
 sel_hit_info = []
 sel_last_hit_info = {"last":"","first":"","second":""}
 
-# data structure
-data = {
-            "Setup": {}, # load setup from setup.json on new project or changes from connect
-            "ListPopup" : {}, # load profile from ListPopup.json on new project
-            "SelectedListPopup" : "", # take first entry ListPopup on new project
-            "NCSettings": {}, # load settings from excellon.json on new project
-            "ListPopup" : {}, # load profile from ListPopup.json on new project
-            "SelectedListPopup" : "", # take first entry ListPopup on new project
-            "NCSettings": {}, # load settings from excellon.json on new project
-            "NCSolderSide": "Top", # let user choose on import of nc file if top or bottom is soldered, in case of bottom, mirror picture on screen on y axis.
-            "NCHits": {}, # generated on nc drill import
-            "NCTools": {}, # generated on nc drill import
-            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
-            "NCHits": {}, # generated on nc drill import
-            "NCTools": {}, # generated on nc drill import
-            "GHome" : "", # g-code string loaded from printerhome.txt file on new project
-            "GHeader" : "", # g-code string loaded from printerheader.txt file on new project
-            "GSolder" : "", # g-code string loaded from printersolder.txt file on new project
-            "GFooter": "", # g-code string loaded from printerfooter.txt file on new project
-            "GSpool" : "", # generated g-code for the panel
-            "Panel": [
-                        # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
-                        #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
-                        # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
-                        #} 
-                        ],
-            "Solder": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
-                        # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
-                        # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "ListPopup":"Weidmuller Conn Term"}
-                        ]
-        }
 def assure_path_exists(path):
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
@@ -222,7 +191,6 @@ class ListScreen(Screen):
         self.sel_soldering_profile = ""
         self.sel_dia_tool = ""
         
-        
         self.nc_file_path = ""
         self.sel_tool_path = "" 
         self.cad_img_origin_path = ""
@@ -241,9 +209,8 @@ class ListScreen(Screen):
         self.g_header = ""
         self.g_solder = ""
         self.g_footer = ""
-        self.g_spool = ""
-        self.panel_settings = ""
-        self.solder_settings = ""
+        self.g_test = ""
+        self.g_go = ""
         self.reference_1 = ""
         self.reference_2 = ""
         self.reference_printer = {"1":[(0.0,0.0,0.0)], "2":[(0.0,0.0,0.0)]}
@@ -258,16 +225,16 @@ class ListScreen(Screen):
         self.b_start_soldering = False
         self.b_started = False
         self.b_test_started = False
+        
+        #### camera and printer object
         self.print = None
-        #### camera capture 
         self.capture = None
-        self.current_printer_point = {"X":0,"Y":0, "Z":0}
-
+        
         self.status_cam = ""
         self.status_printer = ""
 
         Clock.schedule_interval(self.init_gui, 0.2)
-        Clock.schedule_interval(self.show_status, 1)
+        Clock.schedule_interval(self.show_status, 0.03)
     def init_gui(self, dt):
         self.new_file()
         Clock.unschedule(self.init_gui) 
@@ -284,11 +251,8 @@ class ListScreen(Screen):
             pass  
     #### File menu
     def exit_app(self):
-        if self.capture is not None:
-            self.capture.stop()
-        if self.print is not None:
-            self.print.disconnect()
-            self.print = None
+        self.camera_disconnect()
+        self.printer_disconnect()
         App.get_running_app().stop()
     def new_file(self):
         self.init_project()
@@ -314,11 +278,17 @@ class ListScreen(Screen):
 
         with open('setup.json', 'r') as f:
             self.setup_settings = json.load(f)
+        
         self.printer_port = self.setup_settings["RobotPort"]
         self.cam_port = self.setup_settings["CameraPort"]
 
+        self.TravelX = self.setup_settings["TravelX"]
+        self.TravelY = self.setup_settings["TravelY"]
+        self.TravelZ = self.setup_settings["TravelZ"]
+
         with open('solderingprofile.json', 'r') as f:
             self.sol_profile_settings = json.load(f)
+        
         self.sel_soldering_profile = self.sol_profile_settings["SolderingProfile"][0]["Id"]
         self.sel_sol_profile_settings = self.sol_profile_settings["SolderingProfile"][0]
 
@@ -332,29 +302,24 @@ class ListScreen(Screen):
         with open("printerheader.txt", 'rU') as f:
             self.g_header = f.read()
         with open("printerfooter.txt", 'rU') as f:
+            self.g_test = f.read()
+        with open("printersoldertest.txt", 'rU') as f:
             self.g_footer = f.read()
         with open("printersolder.txt", 'rU') as f:
             self.g_solder = f.read()
+        with open("printergo.txt", 'rU') as f:
+            self.g_go = f.read()
 
-        self.g_spool = ""
         self.reference_1 = ""
         self.reference_2 = ""
-
-        self.panel_settings = ""
-        self.solder_settings = ""
 
         self.nc_file_data = ""
         self.nc_selected_file_data = ""
 
         self.project_file_path = ""
         try:
-            if self.capture is not None:
-                self.capture.stop()
-                self.capture = None
-            self.capture = VideoCaptureAsync(self.cam_port)
-            self.capture.start()
-            self.status_cam = "Camera connected"
-            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+            self.camera_disconnect()
+            self.camera_connect()
         except Exception as e:
             print(e, "cam start")
             pass
@@ -365,15 +330,13 @@ class ListScreen(Screen):
         dic_data["SolderingProfile"] = self.sol_profile_settings
         dic_data["SelectedSolderingProfile"] = self.sel_sol_profile_settings
         dic_data["NCSettings"] = self.nc_settings
-        #dic_data["NCHits"] = self.nc_hits
-        #dic_data["NCTools"] = self.nc_tools
+        
         dic_data["GHome"] = self.g_home
         dic_data["GHeader"] = self.g_header
         dic_data["GSolder"] = self.g_solder
         dic_data["GFooter"] = self.g_footer
-        dic_data["GSpool"] = self.g_spool
-        dic_data["Panel"] = self.panel_settings
-        dic_data["Solder"] = self.solder_settings
+        dic_data["GTester"] = self.g_test
+        dic_data["GGo"] = self.g_go
         
         ### 
         with open(self.nc_file_path, 'rU') as f:
@@ -416,38 +379,34 @@ class ListScreen(Screen):
         try:
             with open(filename[0]) as json_data:
                 dic_data = json.load(json_data) 
-        except Exception as e:
-            print(e, " ==> please select correct project file")
+                self.project_file_path = filename[0]
+
+        except:
             self.dismiss_popup()
             return
         self.setup_settings = dic_data["Setup"]
         self.sol_profile_settings = dic_data["SolderingProfile"]
         self.sel_sol_profile_settings = dic_data["SelectedSolderingProfile"]
         self.nc_settings = dic_data["NCSettings"]
-        #dic_data["NCHits"] = self.nc_hits
-        #dic_data["NCTools"] = self.nc_tools
+        
         self.g_home = dic_data["GHome"]
         self.g_header = dic_data["GHeader"] 
         self.g_solder = dic_data["GSolder"] 
-        self.g_footer = dic_data["GFooter"] 
-        self.g_spool = dic_data["GSpool"]
-        self.panel_settings = dic_data["Panel"]
-        self.solder_settings = dic_data["Solder"] 
+        self.g_footer = dic_data["GFooter"]
+        self.g_test = dic_data["GTester"]
+        self.g_go = dic_data["GGo"] 
         self.nc_file_data = dic_data["NCFile"]
         self.nc_selected_file_data = dic_data["SelectedFile"]
         self.panel_num = dic_data["Panel_num"]
         self.reference_printer = dic_data["Panel_references"]
         self.reference_1 = dic_data["NCReference1"] 
         self.reference_2 = dic_data["NCReference2"]
-        sel_last_hit_info["first"] = dic_data["Reference1_point"]
-        sel_last_hit_info["second"] = dic_data["Reference2_point"]
+        
 
         self.nc_file_path = "./temp/nc_origin_file.txt"
         self.sel_tool_path = "./temp/sel_dia_excellon.txt"
         
-        with open(self.sel_tool_path, 'w') as wf:
-            wf.write(self.nc_selected_file_data)
-        wf.close()
+        
 
         with open(self.nc_file_path, 'w') as wf:
             wf.write(self.nc_file_data)
@@ -455,27 +414,33 @@ class ListScreen(Screen):
         
         self.load_nc('', [self.nc_file_path])
         
-        data = gerber.read(self.sel_tool_path)
-        data.to_metric()
-        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
-        data.render(ctx)
-        ctx.dump("./temp/temp_selected.png")
-        self.cad_img_sel_path = "./temp/temp_selected.png"
-        self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()
-        
-        sel_last_hit_info["last"] = sel_last_hit_info["first"]
+        with open(self.sel_tool_path, 'w') as wf:
+            wf.write(self.nc_selected_file_data)
+        wf.close()
 
-        sel_hit_info.append(self.reference_1)
-        self.ids["img_cad_origin"].set_reference(True)
+        self.refresh_selected_view()
+
+        if dic_data["Reference1_point"] != "":
+            sel_last_hit_info["first"] = dic_data["Reference1_point"]
+            
+            sel_last_hit_info["last"] = sel_last_hit_info["first"]
+            sel_hit_info.append(self.reference_1)
+            self.ids["img_cad_origin"].set_reference(True)
+            
+            
+        if dic_data["Reference2_point"] != "":
+            sel_last_hit_info["second"] = dic_data["Reference2_point"]
         
-        sel_last_hit_info["last"] = sel_last_hit_info["second"]
-        sel_hit_info.append(self.reference_2)
-        self.ids["img_cad_origin"].set_reference(False)
+            sel_last_hit_info["last"] = sel_last_hit_info["second"]
+            sel_hit_info.append(self.reference_2)
+            self.ids["img_cad_origin"].set_reference(False)
+        
         
         self.dismiss_popup()
 
     def save(self, path, filename):
+        if not ".json" in filename:
+            filename = filename + ".json"
         with open(os.path.join(path, filename), 'w') as stream:
             dic_data1 = self.make_JSON()
             json.dump(dic_data1, stream, indent=4, sort_keys=True)
@@ -655,14 +620,7 @@ class ListScreen(Screen):
                 else:
                     wf.write(line_temp + '\n')
         wf.close()
-        data = gerber.read(self.sel_tool_path)
-        data.to_metric()
-        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
-        data.render(ctx)
-        ctx.dump("./temp/temp_selected.png")
-        self.cad_img_sel_path = "./temp/temp_selected.png"
-        self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()
+        self.refresh_selected_view()
     def select_by_view(self):
         if len(sel_hit_info) < 1:
             return
@@ -670,7 +628,8 @@ class ListScreen(Screen):
         
         with open(self.nc_file_path, 'rU') as f:
             data = f.read()
-        with open("./temp/aaa.txt", 'w') as wf:
+        self.sel_tool_path = "./temp/sel_dia_excellon.txt"
+        with open(self.sel_tool_path, 'w') as wf:
             pre_x, pre_y = "", ""
             for line in StringIO(data):
                 line_temp = line.strip()
@@ -719,15 +678,18 @@ class ListScreen(Screen):
                 else:
                     wf.write(line_temp + '\n')
         wf.close()
-        data = gerber.read("./temp/aaa.txt")
+        self.refresh_selected_view()
+    
+
+    def refresh_selected_view(self):
+        data = gerber.read(self.sel_tool_path)
         data.to_metric()
         ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
         data.render(ctx)
         ctx.dump("./temp/temp_selected.png")
         self.cad_img_sel_path = "./temp/temp_selected.png"
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()
-        
+        self.ids["img_cad_selected"].reload()    
     def take_tool_num(self, elem):
         return elem[3]
     def deselect_by_view(self):
@@ -784,7 +746,7 @@ class ListScreen(Screen):
 
         # Update the file
         f.hits = hits
-        f.filename = f.filename + '.optimized'
+        f.filename = self.sel_tool_path
         f.write()
         
         # Print drill report
@@ -811,59 +773,55 @@ class ListScreen(Screen):
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
         
         self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
-        self.content.ids["cur_X"].text = str(self.current_printer_point["X"])
-        self.content.ids["cur_Y"].text = str(self.current_printer_point["Y"])
-        self.content.ids["cur_Z"].text = str(self.current_printer_point["Z"])
+        self.content.ids["cur_X"].text = str(self.TravelX)
+        self.content.ids["cur_Y"].text = str(self.TravelY)
+        self.content.ids["cur_Z"].text = str(self.TravelZ)
         self.content.ids["cur_panel"].text = str(self.cur_panel_num)
 
-        if self.print is None:
-            self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-            gcode=[line.strip() for line in StringIO(self.g_header)] 
-            gcode1 = gcoder.LightGCode(gcode)
-            while not self.print.online: 
-                self.status_printer = " 3d printer connecting..."
-                self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                time.sleep(0.1)
-                
-            self.print.startprint(gcode1)
-            self.status_printer = " 3d printer connected"
-            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam       
-        
+        if self.printer_connect() is False:
+            return
+        gcode = []
+        gcode.append(self.send_gcode_from_template(self.g_home))
+        gcode1 = gcoder.LightGCode(gcode)
+        self.print.startprint(gcode1)
+            
         self._popup = Popup(title="Set reference point", content=self.content,
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
         self._popup.open()
     def control_XYZ(self, axis, value):
         if axis == "X":
-            self.current_printer_point["X"] += float(value)
+            self.CoordX += float(value)
         elif axis == "Y":
-            self.current_printer_point["Y"] += float(value)
+            self.CoordY += float(value)
         elif axis == "Z":
             if value == 0:
-                self.current_printer_point["Z"] = 0
+                self.CoordZ = self.TravelZ
             else:
-                self.current_printer_point["Z"] += float(value)
+                self.CoordZ += float(value)
         else:
-            self.current_printer_point["X"] = 0
-            self.current_printer_point["Y"] = 0
+            self.CoordX = self.TravelX
+            self.CoordY = self.TravelY
 
-        self.current_printer_point["X"] = round(self.current_printer_point["X"], 5)
-        self.current_printer_point["Y"] = round(self.current_printer_point["Y"], 5)
-        self.current_printer_point["Z"] = round(self.current_printer_point["Z"], 5)
+        self.CoordX = round(self.CoordX, 5)
+        self.CoordY = round(self.CoordY, 5)
+        self.CoordZ = round(self.CoordZ, 5)
         
-        self.content.ids["cur_X"].text = str(self.current_printer_point["X"])
-        self.content.ids["cur_Y"].text = str(self.current_printer_point["Y"])
-        self.content.ids["cur_Z"].text = str(self.current_printer_point["Z"])
+        self.content.ids["cur_X"].text = str(self.CoordX)
+        self.content.ids["cur_Y"].text = str(self.CoordY)
+        self.content.ids["cur_Z"].text = str(self.CoordZ)
         #### go to printer point (gcode sent)
-        self.print.send("G1 X"+str(self.current_printer_point["X"])+" Y"+str(self.current_printer_point["Y"])+" Z"+str(self.current_printer_point["Z"])+" F300;")
+        temp_gcode = self.send_gcode_from_template(self.g_go)
+        print("#### control dialpad ===>", temp_gcode)
         
     def go_XYZ(self, next_x, next_y, next_z):
         
-        self.current_printer_point["X"] = round(float(next_x), 5)
-        self.current_printer_point["Y"] = round(float(next_y), 5)
-        self.current_printer_point["Z"] = round(float(next_z), 5)
+        self.CoordX = round(float(next_x), 5)
+        self.CoordY = round(float(next_y), 5)
+        self.CoordZ = round(float(next_z), 5)
         #### go to printer point (gcode sent)
-        self.print.send("G1 X"+str(self.current_printer_point["X"])+" Y"+str(self.current_printer_point["Y"])+" Z"+str(self.current_printer_point["Z"])+" F300;")
+        temp_gcode = self.send_gcode_from_template(self.g_go)
+        print("#### control dialpad go! ===>", temp_gcode)
         
     def save_XYZ(self, cur_panel, cur_x, cur_y, cur_z, refer):
         try:
@@ -898,13 +856,8 @@ class ListScreen(Screen):
     def save_camera_port(self, txt_port):
         self.cam_port = txt_port
         try:
-            if self.capture is not None:
-                self.capture.stop()
-                self.capture = None
-            self.capture = VideoCaptureAsync(self.cam_port)
-            self.capture.start()
-            self.status_cam = "Camera connected"
-            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+            self.camera_disconnect()
+            self.camera_connect()
         except  Exception as e:
             print(e," save cam port")
             pass
@@ -918,126 +871,35 @@ class ListScreen(Screen):
         qy = ty + (-math.sin(radians) * (x - ox) + math.cos(radians) * (y - oy))*scale
 
         return qx, qy    
+    def get_soldering_setting(self):
+        self.TravelZ = self.sel_sol_profile_settings["TravelZ"]
+        self.SolderLength = self.sel_sol_profile_settings["SolderLength"]
+        self.Melting = self.sel_sol_profile_settings["Melting"]
+        self.Heatup = self.sel_sol_profile_settings["Heatup"]
+        
+        self.SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
+        self.SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
+        self.SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
+
+        self.ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
+        self.ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
+        self.ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
     def start_soldering(self):
         if self.ids["btn_start"].text == "start soldering" and self.b_test_started is False:
             if self.reference_1 != "" and self.reference_2 != "":
-                if self.print is None:
-                    self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-                    while not self.print.online: 
-                        self.status_printer = " 3d printer connecting..."
-                        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                        time.sleep(0.1)
-                        
-                    self.status_printer = " 3d printer connected"
-                    self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-
-                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                if self.printer_connect() is False:
+                    return
+                gcode = []
+                gcode.append(self.send_gcode_from_template(self.g_header))
                 # or pass in your own array of gcode lines instead of reading from a file
                 gcode1 = gcoder.LightGCode(gcode)
                 self.print.startprint(gcode1) # this will start a print
-                    
                 self.b_started = True
                 
-                TravelZ = self.sel_sol_profile_settings["TravelZ"]
-                SolderLength = self.sel_sol_profile_settings["SolderLength"]
-                Melting = self.sel_sol_profile_settings["Melting"]
-                Heatup = self.sel_sol_profile_settings["Heatup"]
+                self.get_soldering_setting()
+                gcode.append(self.panel_soldering(self.g_solder))
+                gcode.append(self.send_gcode_from_template(self.g_footer))     
                 
-                SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
-                SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
-                SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
-
-                ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
-                ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
-                ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
-                ######## for each panel
-                for k in range(len(self.reference_printer["1"])):
-                    if self.reference_printer["1"][k][0] == 0.0 and self.reference_printer["1"][k][1] == 0.0:
-                        continue
-                    if self.reference_printer["2"][k][0] == 0.0 and self.reference_printer["2"][k][1] == 0.0:
-                        continue
-                    
-                    # nc drill reference point
-                    xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
-                    xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
-                    
-
-                    backside=1 # set backside to -1 on bottom layer
-                    xp1=xp1_0*backside
-                    yp1=yp1_0
-                    
-                    # 3d printer reference point 1 for k' th panel
-                    x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
-                                        
-                    xp2=xp2_0*backside
-                    yp2=yp2_0
-                    
-                    # 3d printer reference point 2 for k' th panel
-                    x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
-                    
-                    v1=array([x1,y1])
-                    vp1=array([xp1,yp1])
-                    v2=array([x2,y2])
-                    vp2=array([xp2,yp2])
-                    dv=subtract(v2,v1)
-                    dvp=subtract(vp2,vp1)
-                    vlen=norm(dv)
-                    vplen=norm(dvp)
-                    c = dot(dv,dvp)/(vlen*vplen)
-                    radians = arccos(c)
-                    scale = vlen / vplen
-
-                    
-                    
-                    data = gerber.read(self.sel_tool_path)
-                    data.to_metric()
-                    gcode.append("; panel " + str(k+1) + " start")
-                    for hit in data.hits:
-                        x, y = hit.position
-                        v2_1 = array([x, y])
-                        x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
-                        # 3d printer points based on (left, bottom) == (0, 0)
-                        PosX, PosY = round((x0), 5), round((y0), 5)
-                        PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
-
-                        ApproxX = round((PosX-ApproxOffsetX),5)
-                        ApproxY = round((PosY-ApproxOffsetY),5)
-                        ApproxZ = round((PosZ-ApproxOffsetZ),5)
-                        SolderX = round((PosX-SolderOffsetX),5)
-                        SolderY = round((PosY-SolderOffsetY),5)
-                        SolderZ = round((PosZ-SolderOffsetZ),5)
-
-                        #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
-
-                        self.print.send("G1 Z" + str(TravelZ) + " F600" + "; travel level on z")
-                        self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
-                        self.print.send("G4 P500;wait 500ms ")
-                        self.print.send("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
-                        self.print.send("G4 P500;wait 500ms ")
-                        self.print.send("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
-                        self.print.send("G4 P" + str(Heatup) + "")
-                        self.print.send("G1 E" + str(SolderLength) + " F1000")
-                        self.print.send("G4 P" + str(Melting) + " ;wait for solder melting on pad")
-                        self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
-                        self.print.send("G1 Z" + str(TravelZ) + " F600")
-                        ###### gcode ####
-                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
-                        gcode.append("G4 P500;wait 500ms ")
-                        gcode.append("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
-                        gcode.append("G4 P500;wait 500ms ")
-                        gcode.append("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
-                        gcode.append("G4 P" + str(Heatup) + "")
-                        gcode.append("G1 E" + str(SolderLength) + " F1000")
-                        gcode.append("G4 P" + str(Melting) + " ;wait for solder melting on pad")
-                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
-                        gcode.append("G1 Z" + str(TravelZ) + " F600")
-                    
-                
-               
-                for line in StringIO(self.g_footer):
-                    self.print.send(line.strip())
-                    gcode.append(line.stip())
-
                 with open("./temp/gcode.txt", 'w') as wf:
                     print(gcode)
                     for temp in gcode:
@@ -1056,14 +918,66 @@ class ListScreen(Screen):
             #If you need to interact with the printer:
             self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
             self.print.pause() # use these to pause/resume the current print
-    
-    def stop_soldering(self):
-        # this is how you disconnect from the printer once you are done. 
-        #This will also stop running prints.    
-        if self.print is not None:
-            self.print.disconnect()
-            self.print = None
+    def panel_soldering(self, template):
+        ######## for each panel
+        gcode = []
+        for k in range(len(self.reference_printer["1"])):
+            if self.reference_printer["1"][k][0] == 0.0 and self.reference_printer["1"][k][1] == 0.0:
+                continue
+            if self.reference_printer["2"][k][0] == 0.0 and self.reference_printer["2"][k][1] == 0.0:
+                continue
+            # nc drill reference point
+            xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
+            xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
+            
+            backside=1 # set backside to -1 on bottom layer
+            xp1=xp1_0*backside
+            yp1=yp1_0
+            
+            # 3d printer reference point 1 for k' th panel
+            x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
+            xp2=xp2_0*backside
+            yp2=yp2_0
+            
+            # 3d printer reference point 2 for k' th panel
+            x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
+            
+            v1=array([x1,y1])
+            vp1=array([xp1,yp1])
+            v2=array([x2,y2])
+            vp2=array([xp2,yp2])
+            dv=subtract(v2,v1)
+            dvp=subtract(vp2,vp1)
+            vlen=norm(dv)
+            vplen=norm(dvp)
+            c = dot(dv,dvp)/(vlen*vplen)
+            radians = arccos(c)
+            scale = vlen / vplen
+            
+            data = gerber.read(self.sel_tool_path)
+            data.to_metric()
+            gcode.append("; panel " + str(k+1) + " start")
+            for hit in data.hits:
+                x, y = hit.position
+                v2_1 = array([x, y])
+                x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
+                # 3d printer points based on (left, bottom) == (0, 0)
+                PosX, PosY = round((x0), 5), round((y0), 5)
+                PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
 
+                self.ApproxX = round((PosX-self.ApproxOffsetX),5)
+                self.ApproxY = round((PosY-self.ApproxOffsetY),5)
+                self.ApproxZ = round((PosZ-self.ApproxOffsetZ),5)
+                self.SolderX = round((PosX-self.SolderOffsetX),5)
+                self.SolderY = round((PosY-self.SolderOffsetY),5)
+                self.SolderZ = round((PosZ-self.SolderOffsetZ),5)
+
+                #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
+                gcode.append(self.send_gcode_from_template(template))
+        return gcode       
+    def stop_soldering(self):
+        self.printer_disconnect()
+         
         self.status_printer = " 3d printer disconnected"
         self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
         self.ids["btn_start"].text = "start soldering"
@@ -1074,121 +988,21 @@ class ListScreen(Screen):
     def test_soldering(self):
         if self.ids["btn_test"].text == "test soldering" and self.b_started is False:
             if self.reference_1 != "" and self.reference_2 != "":
-                if self.print is None:
-                    self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-                     # this will start a print
-                    while not self.print.online: 
-                        self.status_printer = " 3d printer connecting..."
-                        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                        time.sleep(0.1)
-                        
-                    self.status_printer = " 3d printer connected"
-                    self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                
-                gcode=[line.strip() for line in StringIO(self.g_header)] 
+                if self.printer_connect() is False:
+                    return
+
+                gcode = []
+                gcode.append(self.send_gcode_from_template(self.g_header))
                 # or pass in your own array of gcode lines instead of reading from a file
                 gcode1 = gcoder.LightGCode(gcode)
-                self.print.startprint(gcode1)
-
+                self.print.startprint(gcode1) # this will start a print
                 self.b_test_started = True
                 
-                TravelZ = self.sel_sol_profile_settings["TravelZ"]
-                SolderLength = self.sel_sol_profile_settings["SolderLength"]
-                Melting = self.sel_sol_profile_settings["Melting"]
-                Heatup = self.sel_sol_profile_settings["Heatup"]
+                self.get_soldering_setting()
+                gcode.append(self.panel_soldering(self.g_test))
+                gcode.append(self.send_gcode_from_template(self.g_footer))     
                 
-                SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
-                SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
-                SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
-
-                ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
-                ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
-                ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
-                ######## for each panel
-                for k in range(len(self.reference_printer["1"])):
-                    if self.reference_printer["1"][k][0] == 0.0 and self.reference_printer["1"][k][1] == 0.0:
-                        continue
-                    if self.reference_printer["2"][k][0] == 0.0 and self.reference_printer["2"][k][1] == 0.0:
-                        continue
-                    
-                    # nc drill reference point
-                    xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
-                    xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
-                    
-
-                    backside=1 # set backside to -1 on bottom layer
-                    xp1=xp1_0*backside
-                    yp1=yp1_0
-                    
-                    # 3d printer reference point 1 for k' th panel
-                    x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
-                                        
-                    xp2=xp2_0*backside
-                    yp2=yp2_0
-                    
-                    # 3d printer reference point 2 for k' th panel
-                    x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
-                    
-                    v1=array([x1,y1])
-                    vp1=array([xp1,yp1])
-                    v2=array([x2,y2])
-                    vp2=array([xp2,yp2])
-                    dv=subtract(v2,v1)
-                    dvp=subtract(vp2,vp1)
-                    vlen=norm(dv)
-                    vplen=norm(dvp)
-                    c = dot(dv,dvp)/(vlen*vplen)
-                    radians = arccos(c)
-                    scale = vlen / vplen
-                    
-                    data = gerber.read(self.sel_tool_path)
-                    data.to_metric()
-                    gcode.append("; panel " + str(k+1) + " start")
-                    for hit in data.hits:
-                        x, y = hit.position
-                        v2_1 = array([x, y])
-                        x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
-                        # 3d printer points based on (left, bottom) == (0, 0)
-                        PosX, PosY = round((x0), 5), round((y0), 5)
-                        PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
-
-                        ApproxX = round((PosX-ApproxOffsetX),5)
-                        ApproxY = round((PosY-ApproxOffsetY),5)
-                        ApproxZ = round((PosZ-ApproxOffsetZ),5)
-                        SolderX = round((PosX-SolderOffsetX),5)
-                        SolderY = round((PosY-SolderOffsetY),5)
-                        SolderZ = round((PosZ-SolderOffsetZ),5)
-
-                        #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
-
-                        self.print.send("G1 Z" + str(TravelZ) + " F600" + "; travel level on z")
-                        self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
-                        self.print.send("G4 P500;wait 500ms ")
-                        self.print.send("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
-                        self.print.send("G4 P500;wait 500ms ")
-                        self.print.send("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
-                        self.print.send("G4 P" + str(Heatup) + "")
-                        self.print.send("G4 P" + str(Melting) + " ;wait for solder melting on pad")
-                        self.print.send("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
-                        self.print.send("G1 Z" + str(TravelZ) + " F600")
-                        ###### gcode ####
-                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " F600; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program ")
-                        gcode.append("G4 P500;wait 500ms ")
-                        gcode.append("G1 Z" + str(ApproxZ) + " F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program")
-                        gcode.append("G4 P500;wait 500ms ")
-                        gcode.append("G1 X" + str(SolderX) + " Y" + str(SolderY) + " Z" + str(SolderZ) + " F300 ; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program")
-                        gcode.append("G4 P" + str(Heatup) + "")
-                        gcode.append("G4 P" + str(Melting) + " ;wait for solder melting on pad")
-                        gcode.append("G1 X" + str(ApproxX) + " Y" + str(ApproxY) + " Z" + str(ApproxZ) + " F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program")
-                        gcode.append("G1 Z" + str(TravelZ) + " F600")
-                    
-                
-               
-                for line in StringIO(self.g_footer):
-                    self.print.send(line.strip())
-                    gcode.append(line.stip())
-
-                with open("./temp/gcode_test.txt", 'w') as wf:
+                with open("./temp/gcode.txt", 'w') as wf:
                     print(gcode)
                     for temp in gcode:
                         wf.write(temp+"\n")
@@ -1208,27 +1022,76 @@ class ListScreen(Screen):
             self.print.pause() # use these to pause/resume the current print  
 
     def dismiss_popup(self):
+        self.printer_disconnect()
         self._popup.dismiss()
+    def camera_connect(self):
+        self.capture = VideoCaptureAsync(self.cam_port)
+        self.capture.start()
+        self.status_cam = "Camera connected"
+        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+    def camera_disconnect(self):
+        if self.capture is not None:
+            self.capture.stop()
+            self.capture = None
+    def printer_connect(self):
+        if self.print is None:
+            self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
+            waiting_counter = 1
+            while not self.print.online: 
+                self.status_printer = " 3d printer connecting..."
+                self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                time.sleep(0.1)
+                waiting_counter +=1
+                if waiting_counter > 10:
+                    self.print = None
+                    self.status_printer = " 3d printer not connected"
+                    self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+                    return False
+            self.status_printer = " 3d printer connected"
+            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+            return True
+    def printer_disconnect(self):
+        if self.print is not None:
+            self.print.disconnect()
+            self.print = None
+    def send_gcode_from_template(self, template):
+        gcode=[]
+        for line in StringIO(template):
+            converted_line = line.strip().replace("%TravelZ", self.TravelZ)
+            converted_line = converted_line.replace("%ApproxX", self.ApproxX)
+            converted_line = converted_line.replace("%ApproxY", self.ApproxY)
+            converted_line = converted_line.replace("%ApproxZ", self.ApproxZ)
+            converted_line = converted_line.replace("%SolderX", self.SolderX)
+            converted_line = converted_line.replace("%SolderY", self.SolderY)
+            converted_line = converted_line.replace("%SolderZ", self.SolderZ)
+            converted_line = converted_line.replace("%Heatup", self.Heatup)
+            converted_line = converted_line.replace("%Melting", self.Melting)
+            converted_line = converted_line.replace("%TravelX", self.TravelX)
+            converted_line = converted_line.replace("%TravelY", self.TravelY)
+            converted_line = converted_line.replace("%CoordX", self.CoordX)
+            converted_line = converted_line.replace("%CoordY", self.CoordY)
+            converted_line = converted_line.replace("%CoordZ", self.CoordZ)
 
-    
-
+            self.print.send(converted_line)
+            gcode.append(converted_line)
+        return gcode 
     def show_status(self, dt):
         if  self.ids is not "":
-            if self.print is not None: 
+            #self.ids["lbl_cad_cam"].text = " Camera connected" 
+            if self.print is not None and (self.b_started or self.b_test_started): 
                 try:
                     (layer, line) = self.print.mainqueue.idxs(self.print.queueindex)
                     gline = self.print.mainqueue.all_layers[layer][line]
                     #print(gline.raw)
                     self.ids["lbl_solder_status"].text = str(gline.raw)[0:70]#" soldering 1/N pads on panel 2/M"
-                    
                     if str(gline.raw) == "G1 X0 Y0 F600 ; end":
                         self.print.disconnect()
                         self.print = None
                         self.status_printer = " 3d printer disconnected"
                         self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                except:
+                except Exception as e:
+                    print("aaaaa")
                     self.print.disconnect()
-                    self.print = None
                     self.status_printer = " 3d printer disconnected"
                     self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
 
@@ -1248,8 +1111,11 @@ class MyApp(App):
         self.title = 'THT Soldering Robot'
         Window.size = (1280, 768)
         Window.bind(on_resize=self.check_resize)
-
-        return ScreenManagement()
+        self.screen_manage = ScreenManagement()
+        return self.screen_manage
+    def on_stop(self):
+        self.screen_manage.current_screen.camera_disconnect()
+        self.screen_manage.current_screen.printer_disconnect()
 
 
 if __name__ == '__main__':
