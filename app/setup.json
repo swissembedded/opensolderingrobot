@@ -1,4 +1,5 @@
 {
  "RobotPort":"/dev/ttyUSB0",
- "CameraPort":"0"
+ "CameraPort":"0",
+ "TravelZ": 50
 }
