@@ -55,7 +55,28 @@ def convert_to_json(ncdata):
              "SolderingProfile": -1})
     return soldertoolpath
 
+def get_reference_1(soldertoolpath):
+    return [element for element in soldertoolpath if element['PanelRef1'] == True]
+
+def get_reference_2(soldertoolpath):    
+    return [element for element in soldertoolpath if element['PanelRef2'] == True]
+
+
 # optimize selected drill holes for best toolpath, beginning with reference 1
-def optimize_soldertoolpath(soltertoolpath)
+def optimize_soldertoolpath(soldertoolpath,ncdata)
     # unlike nc drill, we do not have to change tool, thus, we make a global optimization
-    
+    # we start on the first marker and search nearest neighbour
+    first=get_reference_1(soldertoolpath)
+    posfirst=first['NCPosition']
+    sorted=[first]
+    tmppath=soldertoolpath.copy()
+    # iterate over the list
+    while(size(tmppath):
+        for e in tmppath:
+            last = sorted[-1]
+            poslast = last['NCPosition']
+            possolder=solder['NCPosition']
+            if possolder!=posfirst:
+                ncdata.hits[last['NCPosition']]
+                ncdata.hits[solder['NCPosition']]
+                
