@@ -115,4 +115,5 @@ def optimize_soldertoolpath(soldertoolpath,ncdata)
             posY=solderingtoolpath[nearestIndex]['NCPositionY']
             print(sortingIndex,solderingtoolpath[nearestIndex])
             sortingIndex+=1
+    return soldertoolpath
 
