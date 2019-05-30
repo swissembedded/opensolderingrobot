@@ -76,6 +76,22 @@ def get_reference_2(soldertoolpath):
             return e
     return -1
 
+# get solder point by index
+def get_solderpoint(index):
+    for e, elem in enumerate(soldertoolpath):
+        if soldertoolpath[e]['ToolPathSorting'] == index:
+            return e
+    return -1
+
+# get number of solderpoint
+def get_number_solderpoints(soldertoolpath):
+    num=-1
+    for e, elem in enumerate(soldertoolpath):
+        sort = soldertoolpath[e]['ToolPathSorting']
+        if sort > num:
+            num=sort
+    return num+1
+
 # optimize selected drill holes for best toolpath, beginning with reference 1
 def optimize_soldertoolpath(soldertoolpath,ncdata)
     # unlike nc drill, we do not have to change tool, thus, we make a global optimization
