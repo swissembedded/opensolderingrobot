@@ -25,6 +25,8 @@ from tsp_solver.greedy import solve_tsp
 def load_nc_drill(name):
     # Read gerber and Excellon files
     ncdata = gerber.read(name)
+    #assume 3d printer to be metric
+    ncdata.to_metric()
     return ncdata
 
 # fill up data structure with nc drill
@@ -41,42 +43,76 @@ def convert_to_json(ncdata):
     tools   = {}
 
     #Get hit positions
-    for hit in ncdata.hits:
+    for h, elem in enumerate(ncdata.hits):
+        hit[h]=ncdata.hits[h]
         tool = hit.tool.number
         pos=hit.position
-        print(tool, pos)
         soldertoolpath.append(
-            {# use pos as key
-             "NCPosition" : pos,
+            {# use index as id
+             "NCId" : h,
+             "NCPositionX": pos.x,
+             "NCPositionY": pos.y,
              "NCTool" : tool,
              "PanelRef1": False, 
              "PanelRef2":False, 
              # no soldering
-             "SolderingProfile": -1})
+             "SolderingProfile": -1}
+             # not sorted
+             "ToolPathSorting":-1)
+    print(soldertoolpath)
     return soldertoolpath
 
+# get reference point 1 index
 def get_reference_1(soldertoolpath):
-    return [element for element in soldertoolpath if element['PanelRef1'] == True]
+    for e, elem in enumerate(soldertoolpath):
+        if soldertoolpath[e]['PanelRef1'] == True:
+            return e
+    return -1
 
-def get_reference_2(soldertoolpath):    
-    return [element for element in soldertoolpath if element['PanelRef2'] == True]
-
+# get reference point 2 index
+def get_reference_2(soldertoolpath):
+    for e, elem in enumerate(soldertoolpath):
+        if soldertoolpath[e]['PanelRef2'] == True:
+            return e
+    return -1
 
 # optimize selected drill holes for best toolpath, beginning with reference 1
 def optimize_soldertoolpath(soldertoolpath,ncdata)
     # unlike nc drill, we do not have to change tool, thus, we make a global optimization
     # we start on the first marker and search nearest neighbour
-    first=get_reference_1(soldertoolpath)
-    posfirst=first['NCPosition']
-    sorted=[first]
-    tmppath=soldertoolpath.copy()
-    # iterate over the list
-    while(size(tmppath):
-        for e in tmppath:
-            last = sorted[-1]
-            poslast = last['NCPosition']
-            possolder=solder['NCPosition']
-            if possolder!=posfirst:
-                ncdata.hits[last['NCPosition']]
-                ncdata.hits[solder['NCPosition']]
-                
+    neighbourX=0
+    neighbourY=0
+    for e, elem in enumerate(solderingtoolpath):
+        tp=solderingtoolpath[e]
+        if tp['PanelRef1']=True:
+            tp['ToolPathSorting']=0
+            neighbourX=tp['NCPositionX']
+            neighbourY=tp['NCPositionY']
+            print(0,solderingtoolpath[nearestIndex])
+        else:
+            tp['ToolPathSorting']=-1
+    # sorting against neighbour
+    hasUnSorted=True
+    sortingIndex=1
+    while hasUnsorted==True:
+        nearestIndex=-1
+        nearestDistance=-1.0
+        for e, elem in enumerate(solderingtoolpath):
+            tp=solderingtoolpath[e]
+            if tp['ToolPathSorting']==-1 AND tp['SolderingProfile']>-1:
+                posX=tp['NCPositionX']
+                posY=tp['NCPositionY']
+                distance=abs(neighboutX-posX)+abs(neighboutY-posY)
+                if nearestDistance == -1 OR nearestDistance > distance:
+                    nearestIndex=e
+                    nearestDistance=distance
+        # choose the best
+        if nearestDistance == -1.0:
+            hasUnSorted=False
+        else:
+            solderingtoolpath[nearestIndex]['ToolPathSorting']=sortingIndex
+            posX=solderingtoolpath[nearestIndex]['NCPositionX']
+            posY=solderingtoolpath[nearestIndex]['NCPositionY']
+            print(sortingIndex,solderingtoolpath[nearestIndex])
+            sortingIndex+=1
+
