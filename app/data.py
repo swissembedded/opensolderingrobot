@@ -1,4 +1,19 @@
-# return data structure for new project
+# Data structure init, load, save for the project
+# This file is part of the opensoldering project distribution (https://github.com/swissembedded/opensolderingrobot.git).
+# Copyright (c) 2019 by Daniel Haensse
+# 
+# This program is free software: you can redistribute it and/or modify  
+# it under the terms of the GNU General Public License as published by  
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but 
+# WITHOUT ANY WARRANTY; without even the implied warranty of 
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License 
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 import json
 import string
 
@@ -11,7 +26,8 @@ def helper_read_txt(name):
     with open(name+".txt", 'r') as f:
         txt = f.read()
         return txt
-        
+
+# create data structure for new project
 def init_project_data():
     data = {
             # read profile for camera
@@ -41,7 +57,6 @@ def init_project_data():
                         # { "NCTool":0, "NCPosition":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":"Weidmuller Conn Term"}
                         ]
             # excellon
-            "NCSettings": helper_read_json("excellon"), # load settings from excellon.json
             "NCSolderSide": "Top", # let user choose on import of nc file
             "NCHits": {}, # generated on nc drill import
             "NCTools": {}, # generated on nc drill import
