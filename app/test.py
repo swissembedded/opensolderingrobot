@@ -15,3 +15,23 @@
 # You should have received a copy of the GNU General Public License 
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import data
+import excellon
+import robotcontrol
+
+# using folder tmp
+# create a new project
+# save it
+# load it
+
+# import excellon file
+# convert it to json
+# select diameter
+# select drill hole by coordinate
+# deselect drill hole by coordinate
+# transform coordinate from click event
+
+# create g-code for soldering
+# create g-code for home
+# create g-code for go xyz
+# convert g-code to array
