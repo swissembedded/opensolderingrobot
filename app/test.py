@@ -21,13 +21,13 @@ import robotcontrol
 
 # using folder tmp
 # create a new project
-data=init_project_data()
-print("created data", data)
+prjdata=data.init_project_data()
+print("created data", prjdata)
 # save it
-write_project_data("temp/test", data)
-dataload=read_project_data("temp/test")
-print("loaded data",dataload)
-if data!=dataload:
+data.write_project_data("temp/test", data)
+prjdataload=read_project_data("temp/test")
+print("loaded data",prjdataload)
+if prjdata!=prjdataload:
 	print("created and loaded data are different!")
 # load it
 
