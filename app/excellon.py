@@ -58,10 +58,9 @@ def convert_to_json(ncdata):
              "PanelRef1": False, 
              "PanelRef2":False, 
              # no soldering
-             "SolderingProfile": -1}
+             "SolderingProfile": -1,
              # not sorted
-             "ToolPathSorting":-1)
-    print(soldertoolpath)
+             "ToolPathSorting":-1})
     return soldertoolpath
 
 # select all drill holes with certain tool (diameter)
@@ -81,7 +80,7 @@ def select_by_position(soldertoolpath, x, y, solderingprofile):
         posX=tp['NCPositionX']
         posY=tp['NCPositionY']
         distance=abs(x-posX)+abs(y-posY)
-        if nearestDistance=-1 OR distance < nearestDistance:
+        if nearestDistance==-1 or distance < nearestDistance:
             nearestIndex=e
             nearestDistance=distance
     if nearestDistance!=-1:
@@ -96,7 +95,7 @@ def deselect_by_position(soldertoolpath, x, y):
         posX=tp['NCPositionX']
         posY=tp['NCPositionY']
         distance=abs(x-posX)+abs(y-posY)
-        if nearestDistance=-1 OR distance < nearestDistance:
+        if nearestDistance==-1 or distance < nearestDistance:
             nearestIndex=e
             nearestDistance=distance
     if nearestDistance!=-1:
@@ -134,7 +133,7 @@ def get_number_solderpoints(soldertoolpath):
     return num+1
 
 # optimize selected drill holes for best toolpath, beginning with reference 1
-def optimize_soldertoolpath(soldertoolpath,ncdata)
+def optimize_soldertoolpath(soldertoolpath, ncdata):
     # unlike nc drill, we do not have to change tool, thus, we make a global optimization
     # we start on the first marker and search nearest neighbour
     neighbourX=0
@@ -156,11 +155,11 @@ def optimize_soldertoolpath(soldertoolpath,ncdata)
         nearestDistance=-1.0
         for e, elem in enumerate(solderingtoolpath):
             tp=solderingtoolpath[e]
-            if tp['ToolPathSorting']==-1 AND tp['SolderingProfile']>-1:
+            if tp['ToolPathSorting']==-1 and tp['SolderingProfile']>-1:
                 posX=tp['NCPositionX']
                 posY=tp['NCPositionY']
                 distance=abs(neighboutX-posX)+abs(neighboutY-posY)
-                if nearestDistance == -1 OR nearestDistance > distance:
+                if nearestDistance == -1 or nearestDistance > distance:
                     nearestIndex=e
                     nearestDistance=distance
         # choose the best
@@ -175,7 +174,7 @@ def optimize_soldertoolpath(soldertoolpath,ncdata)
     return soldertoolpath
 
 # Get nc tool area
-def get_nc_tool_area(soldertoolpath)
+def get_nc_tool_area(soldertoolpath):
     xmin=0
     xmax=0
     ymin=0
@@ -186,18 +185,18 @@ def get_nc_tool_area(soldertoolpath)
         xemax=tp['NCPositionX']+(tp['NCDiameter']/2.0)
         yemin=tp['NCPositionY']-(tp['NCDiameter']/2.0)
         yemax=tp['NCPositionY']+(tp['NCDiameter']/2.0)
-        if e==0 OR xemin<xmin:
+        if e==0 or xemin<xmin:
             xmin=xemin
-        if e==0 OR xemax>xmax:
+        if e==0 or xemax>xmax:
             xmax=xemax
-        if e==0 OR yemin<ymin:
+        if e==0 or yemin<ymin:
             ymin=yemin
-        if e==0 OR yemax<ymax:
+        if e==0 or yemax<ymax:
             ymax=yemax
     return xmin, xmax, ymin, ymax
 
 # Get nc tool area
-def get_nc_tool_position(soldertoolpath,x,y,w,h)
+def get_nc_tool_position(soldertoolpath,x,y,w,h):
     xmin, xmax, ymin, ymax=get_nc_tool_area(soldertoolpath)
     xt=(x/w*(xmax-xmin))+xmin
     xt=(y/h*(ymax-ymin))+ymin

@@ -21,7 +21,14 @@ import robotcontrol
 
 # using folder tmp
 # create a new project
+data=init_project_data()
+print("created data", data)
 # save it
+write_project_data("temp/test", data)
+dataload=read_project_data("temp/test")
+print("loaded data",dataload)
+if data!=dataload:
+	print("created and loaded data are different!")
 # load it
 
 # import excellon file

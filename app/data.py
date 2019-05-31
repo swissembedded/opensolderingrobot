@@ -33,7 +33,7 @@ def init_project_data():
             # read profile for camera
             "Setup": helper_read_json("setup"), # load setup from setup.json on new project or changes from connect
             # read soldering profiles
-            "SolderingProfile" : helper_read_json("solderingprofile")
+            "SolderingProfile" : helper_read_json("solderingprofile"),
             "SelectedSolderingProfile" : 0, # take first entry ListPopup on new project
             # read g-code templates
             "GHome" : helper_read_txt("printerhome"),
@@ -55,11 +55,11 @@ def init_project_data():
             "SolderToolpath": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
                         # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
                         # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" } 
-                        ]
+                        ],
             # excellon
             "NCSolderSide": "Top", # let user choose on import of nc file
             "NCHits": {}, # generated on nc drill import
-            "NCTools": {}, # generated on nc drill import
+            "NCTools": {} # generated on nc drill import
         }
     return data
 
@@ -67,12 +67,12 @@ def read_project_data(name):
     if name.endswith('.json') == False:
         name=name+".json"
     with open(name, 'r') as f:
-        json = json.load(f)
-        return json
+        data = json.load(f)
+        return data
         
-def write_project_data(name, write):
+def write_project_data(name, data):
     if name.endswith('.json') == False:
         name=name+".json"
-     with open(name, 'w') as f:
-        json.dump(write, f, indent=4, sort_keys=True)
+    with open(name, 'w') as f:
+        json.dump(data, f, indent=4, sort_keys=True)
 
