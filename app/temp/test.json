@@ -1,0 +1,105 @@
+{
+    "GFooter": "G1 Z220 F600\nG1 X0 Y0 F600 ; end",
+    "GGetCoords": "M114\n",
+    "GGo": "G1 X%CoordX Y%CoordY Z%CoordZ F300; move to coordinate\n",
+    "GHeader": "G28 ; home all axes (X, Y, and Z)\nG90 ; use absolute positioning for the XYZ axes\nG1 X%TravelX Y%TravelY Z%TravelZ F600\n",
+    "GHome": "G28 ; home all axes (X, Y, and Z)\nG90 ; use absolute positioning for the XYZ axes\n",
+    "GSolder": "G1 Z%TravelZ F600 ; travel level on z\nG1 X%ApproxX Y%ApproxY F600 ; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program\nG4 P500 'wait 500ms\nG1 Z%ApproxZ F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program\nG4 P500 'wait 500ms\nG1 X%SolderX Y%SolderY Z%SolderZ F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program\nG4 P%Heatup 'wait heatup time\nG1 E%SolderLength F1000\nG4 P%Melting 'wait for solder melting on pad\nG1 X%ApproxX Y%ApproxY Z%ApproxZ F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program\nG1 Z%TravelZ F600 ; travel level on z\n",
+    "GSoldertest": "G1 Z%TravelZ F600 ; travel level on z\nG1 X%ApproxX Y%ApproxY F600 ; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program\nG4 P500 'wait 500ms\nG1 Z%ApproxZ F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program\nG4 P500 'wait 500ms\nG1 X%SolderX Y%SolderY Z%SolderZ F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program\nG4 P%Heatup 'wait heatup time\nG4 P%Melting 'wait for solder melting on pad\nG1 X%ApproxX Y%ApproxY Z%ApproxZ F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program\nG1 Z%TravelZ F600 ; travel level on z\n",
+    "GSpool": "",
+    "NCHits": {},
+    "NCSolderSide": "Top",
+    "NCTools": {},
+    "Panel": [],
+    "SelectedSolderingProfile": 0,
+    "Setup": {
+        "CameraPort": "0",
+        "RobotPort": "/dev/ttyUSB0",
+        "TravelX": 0,
+        "TravelY": 0,
+        "TravelZ": 50
+    },
+    "SolderToolpath": [],
+    "SolderingProfile": {
+        "SolderingProfile": [
+            {
+                "ApproxOffsetX": 1.3,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -2.0,
+                "Heatup": 2000,
+                "Id": "Weidmuller Conn Term",
+                "Melting": 2000,
+                "SolderLength": 5.0,
+                "SolderOffsetX": 0.8,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            },
+            {
+                "ApproxOffsetX": 1.1,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -2.0,
+                "Heatup": 2000,
+                "Id": "Wurth Conn Header",
+                "Melting": 2000,
+                "SolderLength": 2.0,
+                "SolderOffsetX": 0.6,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            },
+            {
+                "ApproxOffsetX": 1.0,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -2.0,
+                "Heatup": 2000,
+                "Id": "Magjack RJ45 Signals",
+                "Melting": 2000,
+                "SolderLength": 1.5,
+                "SolderOffsetX": 0.5,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            },
+            {
+                "ApproxOffsetX": 1.4,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -3.0,
+                "Heatup": 3000,
+                "Id": "Magjack RJ45 Mounts",
+                "Melting": 3000,
+                "SolderLength": 10.0,
+                "SolderOffsetX": 0.85,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            },
+            {
+                "ApproxOffsetX": 1.0,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -2.0,
+                "Heatup": 2000,
+                "Id": "USB Signals",
+                "Melting": 2000,
+                "SolderLength": 1.5,
+                "SolderOffsetX": 0.5,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            },
+            {
+                "ApproxOffsetX": 2.2,
+                "ApproxOffsetY": 0.0,
+                "ApproxOffsetZ": -2.5,
+                "Heatup": 3000,
+                "Id": "USB Mounts",
+                "Melting": 3000,
+                "SolderLength": 15.0,
+                "SolderOffsetX": 1.8,
+                "SolderOffsetY": 0.0,
+                "SolderOffsetZ": 0.0,
+                "TravelZ": 50
+            }
+        ]
+    }
+}

@@ -1,17 +1,17 @@
 # Data structure init, load, save for the project
 # This file is part of the opensoldering project distribution (https://github.com/swissembedded/opensolderingrobot.git).
 # Copyright (c) 2019 by Daniel Haensse
-# 
-# This program is free software: you can redistribute it and/or modify  
-# it under the terms of the GNU General Public License as published by  
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 3.
 #
-# This program is distributed in the hope that it will be useful, but 
-# WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License 
+# You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import json
@@ -19,13 +19,13 @@ import string
 
 def helper_read_json(name):
     with open(name+".json", 'r') as f:
-        json = json.load(f)
-        return json
+        jsondata = json.load(f)
+        return jsondata
 
 def helper_read_txt(name):
     with open(name+".txt", 'r') as f:
-        txt = f.read()
-        return txt
+        txtdata = f.read()
+        return txtdata
 
 # create data structure for new project
 def init_project_data():
@@ -49,12 +49,12 @@ def init_project_data():
                         # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
                         #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
                         # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
-                        #} 
+                        #}
                         ],
             # soldering toolpath
             "SolderToolpath": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
                         # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
-                        # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" } 
+                        # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" }
                         ],
             # excellon
             "NCSolderSide": "Top", # let user choose on import of nc file
@@ -67,12 +67,11 @@ def read_project_data(name):
     if name.endswith('.json') == False:
         name=name+".json"
     with open(name, 'r') as f:
-        data = json.load(f)
-        return data
-        
-def write_project_data(name, data):
+        prjdata = json.load(f)
+    return prjdata
+
+def write_project_data(name, prjdata):
     if name.endswith('.json') == False:
         name=name+".json"
     with open(name, 'w') as f:
-        json.dump(data, f, indent=4, sort_keys=True)
-
+        json.dump(prjdata, f, indent=4, sort_keys=True)
