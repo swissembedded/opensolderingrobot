@@ -54,7 +54,7 @@ def init_project_data():
             # soldering toolpath
             "SolderToolpath": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
                         # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools
-                        # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" } 
+                        # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" } 
                         ]
             # excellon
             "NCSolderSide": "Top", # let user choose on import of nc file

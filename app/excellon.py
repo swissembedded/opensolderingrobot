@@ -47,12 +47,14 @@ def convert_to_json(ncdata):
         hit[h]=ncdata.hits[h]
         tool = hit.tool.number
         pos=hit.position
+        dia=hit.diameter
         soldertoolpath.append(
             {# use index as id
              "NCId" : h,
              "NCPositionX": pos.x,
              "NCPositionY": pos.y,
              "NCTool" : tool,
+             "NCDiameter": dia,
              "PanelRef1": False, 
              "PanelRef2":False, 
              # no soldering
@@ -172,3 +174,31 @@ def optimize_soldertoolpath(soldertoolpath,ncdata)
             sortingIndex+=1
     return soldertoolpath
 
+# Get nc tool area
+def get_nc_tool_area(soldertoolpath)
+    xmin=0
+    xmax=0
+    ymin=0
+    ymax=0
+    for e, elem in enumerate(solderingtoolpath):
+        tp=solderingtoolpath[e]
+        xemin=tp['NCPositionX']-(tp['NCDiameter']/2.0)
+        xemax=tp['NCPositionX']+(tp['NCDiameter']/2.0)
+        yemin=tp['NCPositionY']-(tp['NCDiameter']/2.0)
+        yemax=tp['NCPositionY']+(tp['NCDiameter']/2.0)
+        if e==0 OR xemin<xmin:
+            xmin=xemin
+        if e==0 OR xemax>xmax:
+            xmax=xemax
+        if e==0 OR yemin<ymin:
+            ymin=yemin
+        if e==0 OR yemax<ymax:
+            ymax=yemax
+    return xmin, xmax, ymin, ymax
+
+# Get nc tool area
+def get_nc_tool_position(soldertoolpath,x,y,w,h)
+    xmin, xmax, ymin, ymax=get_nc_tool_area(soldertoolpath)
+    xt=(x/w*(xmax-xmin))+xmin
+    xt=(y/h*(ymax-ymin))+ymin
+    return xt,yt
