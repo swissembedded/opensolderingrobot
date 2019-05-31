@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License 
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# some usefull info can be found here
+# https://reprap.org/wiki/G-code
+
 # Fill in parameters into template g-code
 import math
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
