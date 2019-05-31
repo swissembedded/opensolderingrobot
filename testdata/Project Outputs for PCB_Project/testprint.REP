@@ -1,0 +1,235 @@
+*************************************************************
+FileName = testprint.GBR
+AutoAperture = True
+*************************************************************
+Generating : Top Layer
+      File : testprint.GTL
+
+    Adding Layer      : Top Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D10
+    D11
+    D12
+    D13
+    D14
+    D15
+    D16
+    D17
+    D18
+*************************************************************
+
+*************************************************************
+Generating : Mid-Layer 2
+      File : testprint.G1
+
+    Adding Layer      : Mid-Layer 2
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+*************************************************************
+
+*************************************************************
+Generating : Bottom Layer
+      File : testprint.GBL
+
+    Adding Layer      : Bottom Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D15
+    D16
+    D17
+    D18
+*************************************************************
+
+*************************************************************
+Generating : Top Paste
+      File : testprint.GTP
+
+    Adding Layer      : Top Paste
+
+    Adding Layer      : Top Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D11
+    D12
+    D13
+*************************************************************
+
+*************************************************************
+Generating : Top Overlay
+      File : testprint.GTO
+
+    Adding Layer      : Top Overlay
+
+
+Used DCodes :
+    D10
+    D19
+*************************************************************
+
+*************************************************************
+Generating : Top Solder
+      File : testprint.GTS
+
+    Adding Layer      : Top Solder
+
+    Adding Layer      : Top Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D20
+    D21
+    D22
+    D23
+    D24
+    D25
+    D26
+    D27
+    D28
+*************************************************************
+
+*************************************************************
+Generating : Bottom Solder
+      File : testprint.GBS
+
+    Adding Layer      : Bottom Solder
+
+    Adding Layer      : Bottom Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D25
+    D26
+    D27
+    D28
+*************************************************************
+
+*************************************************************
+Generating : Bottom Overlay
+      File : testprint.GBO
+
+    Adding Layer      : Bottom Overlay
+
+
+Used DCodes :
+*************************************************************
+
+*************************************************************
+Generating : Bottom Paste
+      File : testprint.GBP
+
+    Adding Layer      : Bottom Paste
+
+    Adding Layer      : Bottom Layer
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+*************************************************************
+
+*************************************************************
+Generating : Keep-Out Layer
+      File : testprint.GKO
+
+    Adding Layer      : Keep-Out Layer
+
+
+Used DCodes :
+    D29
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 1
+      File : testprint.GM1
+
+    Adding Layer      : Mechanical 1
+
+
+Used DCodes :
+    D10
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 13
+      File : testprint.GM13
+
+    Adding Layer      : Mechanical 13
+
+
+Used DCodes :
+    D29
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 14
+      File : testprint.GM14
+
+    Adding Layer      : Mechanical 14
+
+
+Used DCodes :
+    D29
+*************************************************************
+
+*************************************************************
+Generating : Mechanical 16
+      File : testprint.GM16
+
+    Adding Layer      : Mechanical 16
+
+
+Used DCodes :
+    D29
+*************************************************************
+
+*************************************************************
+Generating : Multi-Layer
+      File : testprint.GML
+
+    Adding Layer      : Multi-Layer
+
+
+Used DCodes :
+    D15
+    D16
+    D17
+    D18
+*************************************************************
+
+*************************************************************
+Generating : Dielectric 1
+      File : testprint.1
+
+    Adding Layer      : Dielectric 1
+
+
+Used DCodes :
+*************************************************************
+
+*************************************************************
+Generating : Dielectric2
+      File : testprint.2
+
+    Adding Layer      : Dielectric2
+
+
+Used DCodes :
+*************************************************************
+

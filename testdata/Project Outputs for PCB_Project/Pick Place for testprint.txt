@@ -1,0 +1,20 @@
+Altium Designer Pick and Place Locations
+C:\Users\Public\Documents\Altium\Projects\PCB_Project\Project Outputs for PCB_Project\Pick Place for testprint.txt
+
+========================================================================================================================
+File Design Information:
+
+Date:       31.05.19
+Time:       17:02
+Revision:   Not in VersionControl
+Variant:    No variations
+Units used: mm
+
+Designator Comment     Layer    Footprint    Center-X(mm) Center-Y(mm) Rotation Description                       
+X1         1870380000  TopLayer 1870380000   76.7380      56.5860      360      "LSF-SMT 3.50/13/90 3.5SN BK"     
+X2         61301421121 TopLayer 61301421121  62.6110      66.1670      180      ""                                
+M2         Marker      TopLayer PASSER-KREIS 98.2980      68.1990      0        ""                                
+Q1         NUD3160LT1G TopLayer SOT23_L      91.4400      66.9290      0        "IC INDCT LOAD DRVR INDUST SOT23" 
+R1         150R        TopLayer RES_0603     79.3750      66.6750      90       ""                                
+C1         100nF       TopLayer CAP_0603     83.9470      66.6750      315      "CAP CER 0.1UF 16V 10% X7R 0603"  
+M1         Marker      TopLayer PASSER-KREIS 51.8160      51.8160      0        ""                                
