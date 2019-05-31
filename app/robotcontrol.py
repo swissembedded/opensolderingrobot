@@ -113,4 +113,17 @@ def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0
                 g_code+=complete_template(gpos,parameters)
         gcode = complete_template({}, data['GFooter'])
         return gcode
-        
+
+def go_xyz(data, x,y,z):
+    gpos = { "CoordX": x, "CoordY" : y, "CoordZ" : z }
+    gcode = complete_template(gpos, data['GGo'])
+    return gcode
+
+def go_home(data):
+    gcode = complete_template({}, data['GHome'])
+    return gcode
+
+# convert gcode into an array of single commands
+def make_array(gcode):
+    return gcode.splitlines()
+    
