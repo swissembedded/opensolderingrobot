@@ -62,6 +62,45 @@ def convert_to_json(ncdata):
     print(soldertoolpath)
     return soldertoolpath
 
+# select all drill holes with certain tool (diameter)
+def select_by_tool(soldertoolpath, tool, solderingprofile):
+    for e, elem in enumerate(solderingtoolpath):
+        tp=solderingtoolpath[e]
+        if solderingtoolpath[e]['NCTool']==tool:
+            solderingtoolpath[e]['SolderingProfile']=solderingprofile
+    return soldertoolpath
+
+# select all drill holes with certain tool (diameter)
+def select_by_position(soldertoolpath, x, y, solderingprofile):
+    nearestIndex=-1
+    nearestDistance=-1
+    for e, elem in enumerate(solderingtoolpath):
+        tp=solderingtoolpath[e]
+        posX=tp['NCPositionX']
+        posY=tp['NCPositionY']
+        distance=abs(x-posX)+abs(y-posY)
+        if nearestDistance=-1 OR distance < nearestDistance:
+            nearestIndex=e
+            nearestDistance=distance
+    if nearestDistance!=-1:
+       solderingtoolpath[nearestIndex]['SolderingProfile']=solderingprofile
+    return soldertoolpath
+
+def deselect_by_position(soldertoolpath, x, y):
+    nearestIndex=-1
+    nearestDistance=-1
+    for e, elem in enumerate(solderingtoolpath):
+        tp=solderingtoolpath[e]
+        posX=tp['NCPositionX']
+        posY=tp['NCPositionY']
+        distance=abs(x-posX)+abs(y-posY)
+        if nearestDistance=-1 OR distance < nearestDistance:
+            nearestIndex=e
+            nearestDistance=distance
+    if nearestDistance!=-1:
+       solderingtoolpath[nearestIndex]['SolderingProfile']=-1
+    return soldertoolpath
+
 # get reference point 1 index
 def get_reference_1(soldertoolpath):
     for e, elem in enumerate(soldertoolpath):
@@ -100,7 +139,7 @@ def optimize_soldertoolpath(soldertoolpath,ncdata)
     neighbourY=0
     for e, elem in enumerate(solderingtoolpath):
         tp=solderingtoolpath[e]
-        if tp['PanelRef1']=True:
+        if tp['PanelRef1']==True:
             tp['ToolPathSorting']=0
             neighbourX=tp['NCPositionX']
             neighbourY=tp['NCPositionY']
