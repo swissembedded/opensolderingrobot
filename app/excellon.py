@@ -43,15 +43,15 @@ def convert_to_json(ncdata):
 
     #Get hit positions
     for h, elem in enumerate(ncdata.hits):
-        hit[h]=ncdata.hits[h]
+        hit = ncdata.hits[h]
         tool = hit.tool.number
-        pos=hit.position
-        dia=hit.diameter
+        x,y = hit.position
+        dia = hit.tool.diameter
         soldertoolpath.append(
             {# use index as id
              "NCId" : h,
-             "NCPositionX": pos.x,
-             "NCPositionY": pos.y,
+             "NCPositionX": x,
+             "NCPositionY": y,
              "NCTool" : tool,
              "NCDiameter": dia,
              "PanelRef1": False,
@@ -64,41 +64,38 @@ def convert_to_json(ncdata):
 
 # select all drill holes with certain tool (diameter)
 def select_by_tool(soldertoolpath, tool, solderingprofile):
-    for e, elem in enumerate(solderingtoolpath):
-        tp=solderingtoolpath[e]
-        if solderingtoolpath[e]['NCTool']==tool:
-            solderingtoolpath[e]['SolderingProfile']=solderingprofile
+    for e, elem in enumerate(soldertoolpath):
+        tp=soldertoolpath[e]
+        if soldertoolpath[e]['NCTool']==tool:
+            soldertoolpath[e]['SolderingProfile']=solderingprofile
     return soldertoolpath
+
+# get the soldertoolpath index by position
+def get_index_by_position(soldertoolpath, x, y):
+    nearestIndex=-1
+    nearestDistance=-1
+    for e, elem in enumerate(soldertoolpath):
+        tp=soldertoolpath[e]
+        posX=tp['NCPositionX']
+        posY=tp['NCPositionY']
+        distance=abs(x-posX)+abs(y-posY)
+        if nearestDistance==-1 or distance < nearestDistance:
+            nearestIndex=e
+            nearestDistance=distance
+    return nearestIndex
+
 
 # select all drill holes with certain tool (diameter)
 def select_by_position(soldertoolpath, x, y, solderingprofile):
-    nearestIndex=-1
-    nearestDistance=-1
-    for e, elem in enumerate(solderingtoolpath):
-        tp=solderingtoolpath[e]
-        posX=tp['NCPositionX']
-        posY=tp['NCPositionY']
-        distance=abs(x-posX)+abs(y-posY)
-        if nearestDistance==-1 or distance < nearestDistance:
-            nearestIndex=e
-            nearestDistance=distance
-    if nearestDistance!=-1:
-       solderingtoolpath[nearestIndex]['SolderingProfile']=solderingprofile
+    nearestIndex=get_index_by_position(soldertoolpath, x, y)
+    if nearestIndex!=-1:
+       soldertoolpath[nearestIndex]['SolderingProfile']=solderingprofile
     return soldertoolpath
 
 def deselect_by_position(soldertoolpath, x, y):
-    nearestIndex=-1
-    nearestDistance=-1
-    for e, elem in enumerate(solderingtoolpath):
-        tp=solderingtoolpath[e]
-        posX=tp['NCPositionX']
-        posY=tp['NCPositionY']
-        distance=abs(x-posX)+abs(y-posY)
-        if nearestDistance==-1 or distance < nearestDistance:
-            nearestIndex=e
-            nearestDistance=distance
-    if nearestDistance!=-1:
-       solderingtoolpath[nearestIndex]['SolderingProfile']=-1
+    nearestIndex=get_index_by_position(soldertoolpath, x, y)
+    if nearestIndex!=-1:
+       soldertoolpath[nearestIndex]['SolderingProfile']=-1
     return soldertoolpath
 
 # get reference point 1 index
@@ -108,12 +105,32 @@ def get_reference_1(soldertoolpath):
             return e
     return -1
 
+# set reference point 1 index
+def set_reference_1(soldertoolpath,x,y):
+    oldref=get_reference_1(soldertoolpath)
+    if oldref !=-1:
+        soldertoolpath[e]['PanelRef1']=False
+    nearestIndex=get_index_by_position(soldertoolpath, x, y)
+    if nearestIndex!=-1:
+        soldertoolpath[nearestIndex]['PanelRef1']=True
+    return soldertoolpath
+
 # get reference point 2 index
 def get_reference_2(soldertoolpath):
     for e, elem in enumerate(soldertoolpath):
         if soldertoolpath[e]['PanelRef2'] == True:
             return e
     return -1
+
+# set reference point 2 index
+def set_reference_2(soldertoolpath,x,y):
+    oldref=get_reference_2(soldertoolpath)
+    if oldref !=-1:
+        soldertoolpath[e]['PanelRef2']=False
+    nearestIndex=get_index_by_position(soldertoolpath, x, y)
+    if nearestIndex!=-1:
+        soldertoolpath[nearestIndex]['PanelRef2']=True
+    return soldertoolpath
 
 # get solder point by index
 def get_solderpoint(index):
@@ -137,13 +154,13 @@ def optimize_soldertoolpath(soldertoolpath, ncdata):
     # we start on the first marker and search nearest neighbour
     neighbourX=0
     neighbourY=0
-    for e, elem in enumerate(solderingtoolpath):
-        tp=solderingtoolpath[e]
+    for e, elem in enumerate(soldertoolpath):
+        tp=soldertoolpath[e]
         if tp['PanelRef1']==True:
             tp['ToolPathSorting']=0
             neighbourX=tp['NCPositionX']
             neighbourY=tp['NCPositionY']
-            print(0,solderingtoolpath[nearestIndex])
+            print(0,soldertoolpath[nearestIndex])
         else:
             tp['ToolPathSorting']=-1
     # sorting against neighbour
@@ -152,8 +169,8 @@ def optimize_soldertoolpath(soldertoolpath, ncdata):
     while hasUnsorted==True:
         nearestIndex=-1
         nearestDistance=-1.0
-        for e, elem in enumerate(solderingtoolpath):
-            tp=solderingtoolpath[e]
+        for e, elem in enumerate(soldertoolpath):
+            tp=soldertoolpath[e]
             if tp['ToolPathSorting']==-1 and tp['SolderingProfile']>-1:
                 posX=tp['NCPositionX']
                 posY=tp['NCPositionY']
@@ -165,10 +182,10 @@ def optimize_soldertoolpath(soldertoolpath, ncdata):
         if nearestDistance == -1.0:
             hasUnSorted=False
         else:
-            solderingtoolpath[nearestIndex]['ToolPathSorting']=sortingIndex
-            posX=solderingtoolpath[nearestIndex]['NCPositionX']
-            posY=solderingtoolpath[nearestIndex]['NCPositionY']
-            print(sortingIndex,solderingtoolpath[nearestIndex])
+            soldertoolpath[nearestIndex]['ToolPathSorting']=sortingIndex
+            posX=soldertoolpath[nearestIndex]['NCPositionX']
+            posY=soldertoolpath[nearestIndex]['NCPositionY']
+            print(sortingIndex,soldertoolpath[nearestIndex])
             sortingIndex+=1
     return soldertoolpath
 
@@ -178,8 +195,8 @@ def get_nc_tool_area(soldertoolpath):
     xmax=0
     ymin=0
     ymax=0
-    for e, elem in enumerate(solderingtoolpath):
-        tp=solderingtoolpath[e]
+    for e, elem in enumerate(soldertoolpath):
+        tp=soldertoolpath[e]
         xemin=tp['NCPositionX']-(tp['NCDiameter']/2.0)
         xemax=tp['NCPositionX']+(tp['NCDiameter']/2.0)
         yemin=tp['NCPositionY']-(tp['NCDiameter']/2.0)

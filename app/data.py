@@ -57,9 +57,7 @@ def init_project_data():
                         # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" }
                         ],
             # excellon
-            "NCSolderSide": "Top", # let user choose on import of nc file
-            "NCHits": {}, # generated on nc drill import
-            "NCTools": {} # generated on nc drill import
+            "SolderSide": "Top", # let user choose on import of nc file            
         }
     return data
 

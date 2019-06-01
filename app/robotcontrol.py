@@ -47,7 +47,7 @@ def panel_soldering(data, panelSelection, isTest):
                  "TravelZ" : round(data['Setup']['TravelZ'],5)}
     gcode = complete_template(data['GHeader'],parameters)
     # soldering backside?
-    if data('NCSolderSide')=="Top":
+    if data('SolderSide')=="Top":
         flip=1
     else:
         flip=-1

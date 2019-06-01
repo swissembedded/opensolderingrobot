@@ -7,9 +7,6 @@
     "GSolder": "G1 Z%TravelZ F600 ; travel level on z\nG1 X%ApproxX Y%ApproxY F600 ; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program\nG4 P500 'wait 500ms\nG1 Z%ApproxZ F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program\nG4 P500 'wait 500ms\nG1 X%SolderX Y%SolderY Z%SolderZ F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program\nG4 P%Heatup 'wait heatup time\nG1 E%SolderLength F1000\nG4 P%Melting 'wait for solder melting on pad\nG1 X%ApproxX Y%ApproxY Z%ApproxZ F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program\nG1 Z%TravelZ F600 ; travel level on z\n",
     "GSoldertest": "G1 Z%TravelZ F600 ; travel level on z\nG1 X%ApproxX Y%ApproxY F600 ; go to transformed soldering coordinate from nc drill minus ApproxOffset on xy from soldering program\nG4 P500 'wait 500ms\nG1 Z%ApproxZ F300; move down to transformed soldering coordinate from nc drill minus ApproxOffset on z from soldering program\nG4 P500 'wait 500ms\nG1 X%SolderX Y%SolderY Z%SolderZ F300; move down to transformed soldering coordinate from nc drill minus SolderOffset on xyz from soldering program\nG4 P%Heatup 'wait heatup time\nG4 P%Melting 'wait for solder melting on pad\nG1 X%ApproxX Y%ApproxY Z%ApproxZ F300; move up to transformed soldering coordinate from nc drill minus ApproxOffset on xyz from soldering program\nG1 Z%TravelZ F600 ; travel level on z\n",
     "GSpool": "",
-    "NCHits": {},
-    "NCSolderSide": "Top",
-    "NCTools": {},
     "Panel": [],
     "SelectedSolderingProfile": 0,
     "Setup": {
@@ -19,6 +16,7 @@
         "TravelY": 0,
         "TravelZ": 50
     },
+    "SolderSide": "Top",
     "SolderToolpath": [],
     "SolderingProfile": {
         "SolderingProfile": [
