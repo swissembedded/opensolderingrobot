@@ -23,51 +23,137 @@ import robotcontrol
 # MENU PROJECT
 # create a new project
 prjdata=data.init_project_data()
-print("created data", prjdata)
 # save it
 data.write_project_data("temp/test", prjdata)
 # load it again
 prjdataload=data.read_project_data("temp/test")
-print("loaded data",prjdataload)
 if prjdata!=prjdataload:
-	print("created and loaded data are different!")
+	print("nok created and loaded data are different!")
+	print("created data", prjdata)
+	print("loaded data",prjdataload)
 else:
-	print("created and loaded data are identical!")
+	print("ok created and loaded data are identical!")
 
 # MENU PROGRAM
 # import excellon file
 ncdata=excellon.load_nc_drill("../testdata/Project Outputs for PCB_Project/testprint.TXT")
 # convert to dialog tools
 tools=excellon.convert_to_tools(ncdata)
-print("tools", tools)
+num=len(tools)
+if num==1:
+	print("ok tools")
+else:
+	print("nok tools", num, tools)
 # convert it to json
 soldertoolpath=excellon.convert_to_json(ncdata)
-print("soldertoolpath",soldertoolpath)
-prjdata['SolderToolpath']=soldertoolpath
-# select by diameter
-soldertoolpathtool=excellon.select_by_tool(soldertoolpath, 1, 0)
-print("soldertoolpath tool selected",soldertoolpathtool)
+num=len(soldertoolpath)
+if num==40:
+	print("ok soldertoolpath json")
+else:
+	print("nok soldertoolpath",num, soldertoolpath)
 
 # select by coordinate
-soldertoolpathpos=excellon.select_by_position(soldertoolpath, 80.238, 53.086,0)
-print("soldertoolpath position selected",soldertoolpathpos)
+excellon.select_by_position(soldertoolpath, 80.238, 53.086,0)
+num=excellon.get_number_selected_solderpoints(soldertoolpath)
+if num==1:
+	print("ok soldertoolpath pos selected")
+else:
+	print("nok soldertoolpath pos selected", num, soldertoolpath)
+
 # deselect drill hole by coordinate
-soldertoolpathpos=excellon.deselect_by_position(soldertoolpath, 80.238, 53.086)
-print("soldertoolpath position deselected",soldertoolpathpos)
+excellon.deselect_by_position(soldertoolpath, 80.238, 53.086)
+num=excellon.get_number_selected_solderpoints(soldertoolpath)
+if num==0:
+	print("ok soldertoolpath pos deselected")
+else:
+	print("nok soldertoolpath pos deselected", num, soldertoolpath)
+
+# select by diameter
+excellon.select_by_tool(soldertoolpath, 1, 0)
+num=excellon.get_number_selected_solderpoints(soldertoolpath)
+if num==40:
+	print("ok soldertoolpath tool selected")
+else:
+	print("nok soldertoolpath tool selected",num, soldertoolpath)
 
 # select reference points
-soldertoolpathref1=excellon.set_reference_1(soldertoolpath, 80.238, 53.086)
-ref1index=excellon.get_reference_1(soldertoolpathref1)
-print("ref1",ref1index)
+excellon.set_reference_1(soldertoolpath, 97.738, 53.086)
+ref1index=excellon.get_reference_1(soldertoolpath)
 
-soldertoolpathref2=excellon.set_reference_2(soldertoolpath, 54.991, 64.897)
-ref2index=excellon.get_reference_2(soldertoolpathref2)
-print("ref2",ref2index)
-if ref1index==0 and ref2index==19:
-	print("ref ok")
+excellon.set_reference_2(soldertoolpath, 54.991, 67.437)
+ref2index=excellon.get_reference_2(soldertoolpath)
+if ref1index==5 and ref2index==20:
+	print("ok ref")
 else:
-	print("ref not ok")
-# transform coordinate from click event
+	print("nok ref", refindex1,refindex2)
+
+# optimize the ToolPathSorting
+excellon.optimize_soldertoolpath(soldertoolpath)
+num=excellon.get_number_solderpoints(soldertoolpath)
+if num==40:
+	print("ok optimize")
+else:
+	print("nok optimize", num)
+# get first soldering point (per definition it is the first reference point)
+num=excellon.get_solderpoint(soldertoolpath,0)
+if num==ref1index:
+	print("ok first soldering point")
+else:
+	print("nok first soldering point")
+
+# get tool area
+xmin, xmax, ymin, ymax=excellon.get_nc_tool_area(soldertoolpath)
+if xmin==54.441 and xmax==98.288 and ymin==52.536 and  ymax==67.987:
+	print("ok nc tool area")
+else:
+	print("nok nc tool area",xmin,xmax, ymin, ymax)
+# get nc drill position from pixel position
+# just assume pixel have scale of 100
+xt, yt=excellon.get_nc_tool_position(soldertoolpath,0,0,(xmax-xmin)*100.0,(ymax-ymin)*100.0)
+if xt==xmin and yt==ymin:
+	print("ok nc tool position min")
+else:
+	print("nok nc tool position min", xt, yt)
+
+xt, yt=excellon.get_nc_tool_position(soldertoolpath,(xmax-xmin)*100.0,(ymax-ymin)*100.0,(xmax-xmin)*100.0,(ymax-ymin)*100.0)
+if xt==xmax and yt==ymax:
+	print("ok nc tool position max")
+else:
+	print("nok nc tool position max", xt, yt)
+
+# get pixel position from nc drill position
+xt, yt=excellon.get_pixel_position(soldertoolpath,xmin,ymin,(xmax-xmin)*100.0,(ymax-ymin)*100.0)
+if xt==0 and yt==0:
+	print("ok pixel position min")
+else:
+	print("nok pixel position min", xt, yt)
+xt, yt=excellon.get_pixel_position(soldertoolpath,xmax,ymax,(xmax-xmin)*100.0,(ymax-ymin)*100.0)
+if xt==(xmax-xmin)*100.0 and yt==(ymax-ymin)*100.0:
+	print("ok pixel position max")
+else:
+	print("nok pixel position max", xt, yt)
+panel=[]
+excellon.set_num_panel(panel, 5)
+num=excellon.get_num_panel(panel)
+if num==5:
+	print("ok num panel")
+else:
+	print("nok num panel",num)
+
+excellon.set_panel_reference_1(panel,0,10,10,10)
+x1,y1,z1 = excellon.get_panel_reference_1(panel,0)
+if x1 == 10 and y1 == 10 or z1 == 10:
+	print("ok panel ref 1")
+else:
+	print("nok panel ref 1", x1, y1, z1)
+
+excellon.set_panel_reference_2(panel,0,10+(xmax-xmin),10+(ymax-ymin),10)
+x2,y2,z2 = excellon.get_panel_reference_2(panel,0)
+if x2 == 10+(xmax-xmin) and y2 == 10+(ymax-ymin) or z2 == 10:
+	print("ok panel ref 2")
+else:
+	print("nok panel ref 2", x2, y2, z2)
+
 # create g-code for soldering
 # create g-code for home
 # create g-code for go xyz

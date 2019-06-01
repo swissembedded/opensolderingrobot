@@ -24,14 +24,14 @@ from numpy.linalg import norm
 import excellon
 
 def complete_template(template, parameters):
-    gcode=template
+    gcode=template.copy()
     for p, elem in enumerate(parameters):
         parameter=parameters[p]
         gcode.replace("%"+parameter.keys()[0], str(parameter.values()[0]))
     return gcode
 
 # coordinate transformation
-def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0,0)):
+def get_printer_point(point, radians, scale, origin=(0, 0), translation=(0,0)):
     ### get printer point from nc drill coordinates
     x, y = point
     ox, oy = origin
