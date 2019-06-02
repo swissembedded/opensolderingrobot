@@ -77,10 +77,14 @@ else:
 	print("nok soldertoolpath tool selected",num, soldertoolpath)
 
 # select reference points
-excellon.set_reference_1(soldertoolpath, 97.738, 53.086)
+ref1x=97.738
+ref1y=53.086
+excellon.set_reference_1(soldertoolpath, ref1x, ref1y)
 ref1index=excellon.get_reference_1(soldertoolpath)
 
-excellon.set_reference_2(soldertoolpath, 54.991, 67.437)
+ref2x=54.991
+ref2y=67.437
+excellon.set_reference_2(soldertoolpath, ref2x, ref2y)
 ref2index=excellon.get_reference_2(soldertoolpath)
 if ref1index==5 and ref2index==20:
 	print("ok ref")
@@ -140,16 +144,16 @@ if num==5:
 else:
 	print("nok num panel",num)
 
-excellon.set_panel_reference_1(panel,0,10,10,10)
+excellon.set_panel_reference_1(panel,0,ref1x+10,ref1y+10,10)
 x1,y1,z1 = excellon.get_panel_reference_1(panel,0)
-if x1 == 10 and y1 == 10 or z1 == 10:
+if x1 == ref1x+10 and y1 == ref1y+10 or z1 == 10:
 	print("ok panel ref 1")
 else:
 	print("nok panel ref 1", x1, y1, z1)
 
-excellon.set_panel_reference_2(panel,0,10+(xmax-xmin),10+(ymax-ymin),10)
+excellon.set_panel_reference_2(panel,0,ref2x+10,ref2y+10,10)
 x2,y2,z2 = excellon.get_panel_reference_2(panel,0)
-if x2 == 10+(xmax-xmin) and y2 == 10+(ymax-ymin) or z2 == 10:
+if x2 == 10+ref2x and y2 == 10+ref2y or z2 == 10:
 	print("ok panel ref 2")
 else:
 	print("nok panel ref 2", x2, y2, z2)
