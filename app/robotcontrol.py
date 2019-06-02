@@ -18,16 +18,19 @@
 # https://reprap.org/wiki/G-code
 
 # Fill in parameters into template g-code
+import string
 import math
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
 from numpy.linalg import norm
 import excellon
 
+
+
 def complete_template(template, parameters):
-    gcode=template.copy()
-    for p, elem in enumerate(parameters):
-        parameter=parameters[p]
-        gcode.replace("%"+parameter.keys()[0], str(parameter.values()[0]))
+    gcode=template
+    for key,value in parameters.items():
+        token="%"+key
+        gcode=gcode.replace(token,str(value))
     return gcode
 
 # coordinate transformation
@@ -42,18 +45,18 @@ def get_printer_point(point, radians, scale, origin=(0, 0), translation=(0,0)):
 
 def panel_soldering(data, panelSelection, isTest):
     # header
-    parameters={ "TravelX" : round(data['Setup']['TravelX'],5),
-                 "TravelY" : round(data['Setup']['TravelY'],5),
-                 "TravelZ" : round(data['Setup']['TravelZ'],5)}
+    parameters={ "TravelX" : round(data['Setup']['TravelX'],2),
+                 "TravelY" : round(data['Setup']['TravelY'],2),
+                 "TravelZ" : round(data['Setup']['TravelZ'],2)}
     gcode = complete_template(data['GHeader'],parameters)
     # soldering backside?
-    if data('SolderSide')=="Top":
+    if data['SolderSide']=="Top":
         flip=1
     else:
         flip=-1
     # for each selected panel soldering
     for p, elem in enumerate(panelSelection):
-        panel=data['Panel'][p]
+        panel=data['Panel'][panelSelection[p]]
         # get panel data
         # teached panel coordinates
         xp1=panel['RefX1']
@@ -62,6 +65,9 @@ def panel_soldering(data, panelSelection, isTest):
         xp2=panel['RefX2']
         yp2=panel['RefY2']
         zp2=panel['RefZ2']
+        if xp1==-1 or xp2==-1 or yp1==-1 or yp2==-1 or zp1==-1 or zp2==-1:
+            print("error missing reference, skipping panel",p)
+            continue
         zp=(zp1+zp2)/2.0
         # solder toolpath
         soldertoolpath=data['SolderToolpath']
@@ -86,22 +92,22 @@ def panel_soldering(data, panelSelection, isTest):
         radians = arccos(c)
         scale = vplen / vnlen
         # iterate over each solder point in the toolpath
-        for s in range(get_number_solderpoints(soldertoolpath)):
-            stp=get_solderpoint(s)
+        for s in range(excellon.get_number_solderpoints(soldertoolpath)):
+            stp=soldertoolpath[excellon.get_solderpoint(soldertoolpath,s)]
             xn=stp['NCPositionX']*flip
             yn=stp['NCPositionY']
-            vn=array[xn, yn]
-            sp=data['SolderingProfile'][stp['SolderingProfile']]
+            vn=array([xn, yn])
             xp, yp = get_printer_point(vn, -radians, scale, vn1, vp1)
+            sp=excellon.get_soldering_profile(data['SolderingProfile'],stp['SolderingProfile'])
             # create parameterlist
             parameters={
-                    "TravelZ" : round(sp['TravelZ'],5),
-                    "ApproxX" : round(xp-sp['ApproxOffsetX'],5),
-                    "ApproxY" : round(yp-sp['ApproxOffsetY'],5),
-                    "ApproxZ" : round(zp-sp['ApproxOffsetZ'],5),
-                    "SolderX" : round(xp-sp['SolderOffsetX'],5),
-                    "SolderY" :round(yp-sp['SolderOffsetY'],5),
-                    "SolderZ" : round(zp-sp['SolderOffsetZ'],5),
+                    "TravelZ" : round(sp['TravelZ'],2),
+                    "ApproxX" : round(xp-sp['ApproxOffsetX'],2),
+                    "ApproxY" : round(yp-sp['ApproxOffsetY'],2),
+                    "ApproxZ" : round(zp-sp['ApproxOffsetZ'],2),
+                    "SolderX" : round(xp-sp['SolderOffsetX'],2),
+                    "SolderY" :round(yp-sp['SolderOffsetY'],2),
+                    "SolderZ" : round(zp-sp['SolderOffsetZ'],2),
                     "Heatup" : sp['Heatup'],
                     "SolderLength" : sp['SolderLength'],
                     "Melting" : sp['Melting'] }
@@ -109,13 +115,16 @@ def panel_soldering(data, panelSelection, isTest):
                 gpos = complete_template(data['GSoldertest'], parameters)
             else:
                 gpos = complete_template(data['GSolder'], parameters)
-            g_code+=gpos
-        gcode = complete_template(data['GFooter'], {})
+            gcode+=gpos
+        gcode += complete_template(data['GFooter'], {})
         return gcode
 
 def go_xyz(data, x,y,z):
-    parameters = { "CoordX": x, "CoordY" : y, "CoordZ" : z }
-    gcode = complete_template(gpos, data['GGo'], parameters)
+    parameters = {
+        "CoordX": round(x,2),
+        "CoordY" : round(y,2),
+        "CoordZ" : round(z,2) }
+    gcode = complete_template(data['GGo'], parameters)
     return gcode
 
 def go_home(data):

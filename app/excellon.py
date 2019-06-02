@@ -266,7 +266,7 @@ def set_panel_reference_1(panel,index,x,y,z):
     panel[index]['RefY1']=y
     panel[index]['RefZ1']=z
 
-# get panel reference point 1
+# get panel reference point 2
 def get_panel_reference_2(panel,index):
     return panel[index]['RefX2'], panel[index]['RefY2'], panel[index]['RefZ2']
 
@@ -275,3 +275,14 @@ def set_panel_reference_2(panel,index,x,y,z):
     panel[index]['RefX2']=x
     panel[index]['RefY2']=y
     panel[index]['RefZ2']=z
+
+# get list of soldering profile
+def get_list_soldering_profile(solderingprofile):
+    profile=[]
+    for p, elem in enumerate(solderingprofile['SolderingProfile']):
+        profile.append(solderingprofile['SolderingProfile'][p]['Id'])
+    return profile
+
+# get item of soldering profile
+def get_soldering_profile(solderingprofile, index):
+    return solderingprofile['SolderingProfile'][index]

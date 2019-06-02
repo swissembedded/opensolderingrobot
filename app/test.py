@@ -154,7 +154,44 @@ if x2 == 10+(xmax-xmin) and y2 == 10+(ymax-ymin) or z2 == 10:
 else:
 	print("nok panel ref 2", x2, y2, z2)
 
-# create g-code for soldering
+# soldering profile list for gui selection
+solderingprofile=prjdata['SolderingProfile']
+list=excellon.get_list_soldering_profile(solderingprofile)
+if len(list)==len(solderingprofile['SolderingProfile']):
+	print("ok soldering profile list")
+else:
+	print("nok soldering profile list", len(list), len(solderingprofile), solderingprofile['SolderingProfile'])
+# soldering profile first entry
+firstprofile=excellon.get_soldering_profile(solderingprofile,0)
+if firstprofile==solderingprofile['SolderingProfile'][0]:
+	print("ok sodering profile")
+else:
+	print("nok soldering profile")
+
+# make array out of gcode
+garray=robotcontrol.make_array("1\n2\n3\n")
+if len(garray) == 3:
+	print("ok gcode array")
+else:
+	print("nok gcode array")
+
 # create g-code for home
-# create g-code for go xyz
-# convert g-code to array
+#go_xyz(prjdata, x,y,z)
+gcode=robotcontrol.go_xyz(prjdata, 1,2,3)
+if "G1 X1 Y2 Z3" in gcode:
+	print("ok go xyz")
+else:
+	print("nok goxyz", gcode)
+
+#go_home(prjdata)
+gcode=robotcontrol.go_home(prjdata)
+if "G28" in gcode and "G90" in gcode:
+	print("ok home")
+else:
+	print("nok home", gcode)
+
+# create g-code for soldering
+prjdata['Panel']=panel
+prjdata['SolderToolpath']=soldertoolpath
+gcode=robotcontrol.panel_soldering(prjdata, [0], False)
+print("soldering", gcode)
