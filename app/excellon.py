@@ -18,7 +18,6 @@ import gerber
 from gerber.render.cairo_backend import GerberCairoContext
 from operator import sub
 from gerber.excellon import DrillHit
-from tsp_solver.greedy import solve_tsp
 
 # load nc drill, exception must be handled outside
 def load_nc_drill(name):

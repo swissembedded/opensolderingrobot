@@ -89,6 +89,11 @@ def panel_soldering(data, panelSelection, isTest):
         vplen=norm(dvp)
         vnlen=norm(dvn)
         c = dot(dvp,dvn)/(vplen*vnlen)
+        # some numerical issues
+        if c > 1.0:
+            c=1.0
+        elif c<-1.0:
+            c=-1.0
         radians = arccos(c)
         scale = vplen / vnlen
         # iterate over each solder point in the toolpath
