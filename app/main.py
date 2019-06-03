@@ -46,7 +46,7 @@ except(ImportError):
 #to send a file of gcode to the printer
 from printrun.printcore import printcore
 from printrun import gcoder
-# to transform g-code 
+# to transform g-code
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
 from numpy.linalg import norm
 
@@ -82,7 +82,7 @@ class TouchImage(Image):
                 ratio_width = real_img_size["width"]*ratio
                 x_delta = (width-ratio_width)/2
                 x_start += x_delta
-                
+
                 x_end, y_end = x_start + ratio_width, y_start + height
 
                 cur_x, cur_y = touch.pos
@@ -95,11 +95,11 @@ class TouchImage(Image):
                             sel_draw_hit_info.remove(temp)
                         else:
                             sel_draw_hit_info.append(temp)
-                        
+
                         sel_last_hit_info["last"] = sel_draw_hit_info[-1]
                         self.draw_selected_drill()
-                        
-                        
+
+
             except:
                 return True
             return True
@@ -128,9 +128,9 @@ class TouchImage(Image):
                 y = pos_y - dia
                 Color(0/255, 255/255, 0/255)
                 Ellipse(pos=(x, y), size=(2*dia, 2*dia))
-            
+
     def get_dia_true(self, pos, ratio, x_start, y_start):
-        ### get drill hit on current mouse position, 
+        ### get drill hit on current mouse position,
         ### pos => mouse point, ratio => real image/ nc drills coord, x_start, y_start => computed nc drill coords.
         for i in range(len(hit_info)):
             x, y, radius, tool_num = hit_info[i]
@@ -142,7 +142,7 @@ class TouchImage(Image):
             if cur_x > x_min and cur_x < x_max and cur_y > y_min and cur_y < y_max:
                 pos_x = x_min + radius*ratio
                 pos_y = y_min + radius*ratio
-                
+
                 temp = (x/10, y/10, radius*2/10, tool_num)
                 if temp in sel_hit_info:
                     sel_hit_info.remove(temp)
@@ -156,7 +156,7 @@ class TouchImage(Image):
         sel_hit_info.clear()
         sel_last_hit_info["first"]= ""
         sel_last_hit_info["second"] = ""
-    
+
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -191,9 +191,9 @@ class ListScreen(Screen):
         self.item_nc_tools = []
         self.sel_soldering_profile = ""
         self.sel_dia_tool = ""
-        
+
         self.nc_file_path = ""
-        self.sel_tool_path = "" 
+        self.sel_tool_path = ""
         self.cad_img_origin_path = ""
         self.cad_img_sel_path = ""
         self.panel_num = 1
@@ -218,7 +218,7 @@ class ListScreen(Screen):
         self.nc_file_data = ""
         self.nc_selected_file_data = ""
         self.project_file_path = ""
-        #### port settings 
+        #### port settings
         self.cam_port = ""
         self.printer_port = ""
 
@@ -226,11 +226,11 @@ class ListScreen(Screen):
         self.b_start_soldering = False
         self.b_started = False
         self.b_test_started = False
-        
+
         #### camera and printer object
         self.print = None
         self.capture = None
-        
+
         self.status_cam = ""
         self.status_printer = ""
         self.TravelZ = 0
@@ -252,8 +252,8 @@ class ListScreen(Screen):
         Clock.schedule_interval(self.show_status, 0.03)
     def init_gui(self, dt):
         self.new_file()
-        Clock.unschedule(self.init_gui) 
-        Clock.schedule_interval(self.cam_update, 0.03) 
+        Clock.unschedule(self.init_gui)
+        Clock.schedule_interval(self.cam_update, 0.03)
     def cam_update(self, dt):
         try:
             _, frame = self.capture.read()
@@ -263,7 +263,7 @@ class ListScreen(Screen):
             texture1.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             self.ids['img_cam'].texture = texture1
         except Exception as e:
-            pass  
+            pass
     #### File menu
     def exit_app(self):
         self.camera_disconnect()
@@ -272,20 +272,20 @@ class ListScreen(Screen):
     def new_file(self):
         ## File menu / New Project
         self.init_project()
-        
+
         # init cad view
         self.ids["img_cad_origin"].source = self.cad_img_origin_path
         self.ids["img_cad_origin"].reload()
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
         self.ids["img_cad_selected"].reload()
         # init status bar
-        self.ids["lbl_cad_cam"].text = ""  
+        self.ids["lbl_cad_cam"].text = ""
         self.ids["lbl_solder_status"].text = self.sel_soldering_profile + " / " + self.sel_dia_tool
-        
+
     def init_project(self):
         # erase(initialize) all data
         self.nc_file_path = ""
-        self.sel_tool_path = "" 
+        self.sel_tool_path = ""
         self.cad_img_origin_path = ""
         self.cad_img_sel_path = ""
         self.items_soldering_profile = []
@@ -294,7 +294,7 @@ class ListScreen(Screen):
 
         with open('setup.json', 'r') as f:
             self.setup_settings = json.load(f)
-        
+
         self.printer_port = self.setup_settings["RobotPort"]
         self.cam_port = self.setup_settings["CameraPort"]
 
@@ -304,12 +304,12 @@ class ListScreen(Screen):
 
         with open('solderingprofile.json', 'r') as f:
             self.sol_profile_settings = json.load(f)
-        
+
         self.sel_soldering_profile = self.sol_profile_settings["SolderingProfile"][0]["Id"]
         self.sel_sol_profile_settings = self.sol_profile_settings["SolderingProfile"][0]
 
-        with open('excellon.json', 'r') as f:
-            self.nc_settings = json.load(f)
+        #with open('excellon.json', 'r') as f:
+        #        self.nc_settings = json.load(f)
         self.nc_hits = ""
         self.nc_tools = ""
 
@@ -333,7 +333,7 @@ class ListScreen(Screen):
         self.nc_selected_file_data = ""
 
         self.project_file_path = ""
-        
+
         self.ids["img_cad_origin"].deselect_drill()
         try:
             self.camera_disconnect()
@@ -341,29 +341,29 @@ class ListScreen(Screen):
         except Exception as e:
             print(e, "cam start")
             pass
-        
+
     def make_JSON(self):
         ### make for saving project file
         dic_data = {}
         dic_data["Setup"] = self.setup_settings
         dic_data["SolderingProfile"] = self.sol_profile_settings
         dic_data["SelectedSolderingProfile"] = self.sel_sol_profile_settings
-        dic_data["NCSettings"] = self.nc_settings
-        
+        #dic_data["NCSettings"] = self.nc_settings
+
         dic_data["GHome"] = self.g_home
         dic_data["GHeader"] = self.g_header
         dic_data["GSolder"] = self.g_solder
         dic_data["GFooter"] = self.g_footer
         dic_data["GTester"] = self.g_test
         dic_data["GGo"] = self.g_go
-        
-        ### 
+
+        ###
         with open(self.nc_file_path, 'r') as f:
             self.nc_file_data = f.read()
 
         with open(self.sel_tool_path, 'r') as f:
-            self.nc_selected_file_data = f.read()    
-        
+            self.nc_selected_file_data = f.read()
+
         dic_data["NCFile"] = self.nc_file_data
         dic_data["SelectedFile"] = self.nc_selected_file_data
         dic_data["Panel_num"] = self.panel_num
@@ -390,7 +390,7 @@ class ListScreen(Screen):
             dic_data1 = self.make_JSON()
             with open(self.project_file_path, 'w') as fp:
                 json.dump(dic_data1, fp, indent=4, sort_keys=True)
-        
+
     def save_as_file(self):
         ### File Menu / Save as Project
         content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
@@ -404,7 +404,7 @@ class ListScreen(Screen):
         try:
             ### if proper project file
             with open(filename[0]) as json_data:
-                dic_data = json.load(json_data) 
+                dic_data = json.load(json_data)
                 self.project_file_path = filename[0]
         except:
             ### if not proper project file
@@ -413,21 +413,21 @@ class ListScreen(Screen):
         self.setup_settings = dic_data["Setup"]
         self.sol_profile_settings = dic_data["SolderingProfile"]
         self.sel_sol_profile_settings = dic_data["SelectedSolderingProfile"]
-        self.nc_settings = dic_data["NCSettings"]
-        
+        #self.nc_settings = dic_data["NCSettings"]
+
         self.g_home = dic_data["GHome"]
-        self.g_header = dic_data["GHeader"] 
-        self.g_solder = dic_data["GSolder"] 
+        self.g_header = dic_data["GHeader"]
+        self.g_solder = dic_data["GSolder"]
         self.g_footer = dic_data["GFooter"]
         self.g_test = dic_data["GTester"]
-        self.g_go = dic_data["GGo"] 
+        self.g_go = dic_data["GGo"]
         self.nc_file_data = dic_data["NCFile"]
         self.nc_selected_file_data = dic_data["SelectedFile"]
         self.panel_num = dic_data["Panel_num"]
         self.reference_printer = dic_data["Panel_references"]
-        self.reference_1 = dic_data["NCReference1"] 
+        self.reference_1 = dic_data["NCReference1"]
         self.reference_2 = dic_data["NCReference2"]
-        
+
 
         self.nc_file_path = "./temp/nc_origin_file.txt"
         self.sel_tool_path = "./temp/sel_dia_excellon.txt"
@@ -435,9 +435,9 @@ class ListScreen(Screen):
         with open(self.nc_file_path, 'w') as wf:
             wf.write(self.nc_file_data)
         wf.close()
-        
+
         self.load_nc('', [self.nc_file_path])
-        
+
         with open(self.sel_tool_path, 'w') as wf:
             wf.write(self.nc_selected_file_data)
         wf.close()
@@ -448,12 +448,12 @@ class ListScreen(Screen):
         if dic_data["Reference1_point"] != "":
             sel_last_hit_info["first"] = dic_data["Reference1_point"]
             sel_last_hit_info["last"] = sel_last_hit_info["first"]
-            
+
         if dic_data["Reference2_point"] != "":
             sel_last_hit_info["second"] = dic_data["Reference2_point"]
             sel_last_hit_info["last"] = sel_last_hit_info["second"]
-            
-        
+
+
         sel_draw_hit_info = dic_data["SelectedDrills_draw"]
         sel_hit_info = dic_data["SelectedDrills"]
         self.ids["img_cad_origin"].draw_selected_drill()
@@ -477,21 +477,21 @@ class ListScreen(Screen):
         self._popup = Popup(title="Load file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
-    
+
     def load_nc(self, path, filename):
         ### after click load button of Loading button
-        
+
         self.dismiss_popup()
         self.item_nc_tools.clear()
         self.nc_file_path = filename[0]
-         
+
         try:
             # Read gerber and Excellon files
             data = gerber.read(self.nc_file_path)
             for tool in iter(data.tools.values()):
                 self.item_nc_tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
             hit_info.clear()
-            
+
             ### get relation between appeared Image Pixels and PCB coordinate
             xmin = 100000
             xmax = -100000
@@ -505,12 +505,12 @@ class ListScreen(Screen):
                 xmax = max(x+radius, xmax)
                 ymin = min(y-radius, ymin)
                 ymax = max(y+radius, ymax)
-            
+
             bound_box["width"] = round((xmax-xmin)*10)
             bound_box["height"] = round((ymax-ymin)*10)
             bound_box["x"] = round(xmin*10)
             bound_box["y"] = round(ymin*10)
-            
+
             self.nc_hits = data.hits
             self.nc_tools = data.tools
 
@@ -523,7 +523,7 @@ class ListScreen(Screen):
             popup = ErrorDialog(self)
             popup.open()
             return
-        
+
         ctx.dump("./temp/temp_origin.png")
         self.cad_img_origin_path = "./temp/temp_origin.png"
         self.ids["img_cad_origin"].source = self.cad_img_origin_path
@@ -531,7 +531,7 @@ class ListScreen(Screen):
         # get real image size
         im = pil_image.open('./temp/temp_origin.png')
         real_img_size["width"], real_img_size["height"] = im.size
-        
+
         # show image with selected tool(dia)
         self.b_init_dia_tool = True
         self.sel_dia_tool = self.item_nc_tools[0]
@@ -540,7 +540,7 @@ class ListScreen(Screen):
     def select_profile(self):
         ### Program menu / Select Soldering Profile
         self.items_soldering_profile.clear()
-                
+
         temp_soldering_profile = []
         for i in range(len(self.sol_profile_settings["SolderingProfile"])):
             if self.sel_soldering_profile == self.sol_profile_settings["SolderingProfile"][i]["Id"]:
@@ -549,19 +549,19 @@ class ListScreen(Screen):
             else:
                 dic_solder = {'text':self.sol_profile_settings["SolderingProfile"][i]["Id"], 'is_selected': False}
             temp_soldering_profile.append(dic_solder)
-            
+
             self.items_soldering_profile.append(self.sol_profile_settings["SolderingProfile"][i])
-        
+
         content = ListPopup()
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 50}
         list_adapter = ListAdapter(data=temp_soldering_profile, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
         list_view = ListView(adapter=list_adapter)
-        
+
         content.ids.profile_list.add_widget(list_view)
-        
+
         list_view.adapter.bind(on_selection_change=self.selected_profile)
-        
-        
+
+
         self._popup = Popup(title="Select soldering profile", content=content, size_hint=(0.5, 0.6))
         self._popup.open()
 
@@ -596,13 +596,13 @@ class ListScreen(Screen):
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 40}
         list_adapter = ListAdapter(data=temp_tools, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
         list_view = ListView(adapter=list_adapter)
-        
+
         content.ids.profile_list.add_widget(list_view)
         list_view.adapter.bind(on_selection_change=self.selected_tools)
-        
+
         self._popup = Popup(title="Select soldering pad by tools", content=content, size_hint=(0.5, 0.7))
         self._popup.open()
-    
+
     def selected_tools(self, adapter):
         ### select tool on tools' list
         if self.b_init_dia_tool:
@@ -618,7 +618,7 @@ class ListScreen(Screen):
         str_00_tool = "T" + '{:02d}'.format(sel_tool)
         str_tool = "T" + str(sel_tool)
         b_start = False
-        
+
         with open(self.nc_file_path, 'r') as f:
             data = f.read()
         self.sel_tool_path = "./temp/sel_dia_excellon.txt"
@@ -646,7 +646,7 @@ class ListScreen(Screen):
         if len(sel_hit_info) < 1:
             return
         sel_hit_info.sort(key=self.take_tool_num)
-        
+
         with open(self.nc_file_path, 'r') as f:
             data = f.read()
         self.sel_tool_path = "./temp/sel_dia_excellon.txt"
@@ -673,14 +673,14 @@ class ListScreen(Screen):
                     if len(arr_temp)==1:
                         cur_y = pre_y
                         cur_x = arr_temp[0]
-                    else: 
+                    else:
                         if arr_temp[0] == '':
                             cur_x = pre_x
                             cur_y = arr_temp[1]
                         else:
                             cur_x = arr_temp[0]
                             cur_y = arr_temp[1]
-                    
+
                     for sel_hit in sel_hit_info:
                         x, y, dia, sel_tool = sel_hit
                         x = int(x*1000000)
@@ -689,7 +689,7 @@ class ListScreen(Screen):
                         str_y = str(y).replace(".","").replace("0","")
                         temp_cur_x = str(int(cur_x.replace("X", ""))*1000000).replace("0","")
                         temp_cur_y = str(int(cur_y)*1000000).replace("0","")
-                        
+
                         if temp_cur_x == str_x and temp_cur_y == str_y:
                             wf.write(cur_x + "Y" + cur_y + '\n')
                             #wf.write(line_temp + '\n')
@@ -700,10 +700,10 @@ class ListScreen(Screen):
                     wf.write(line_temp + '\n')
         wf.close()
         self.refresh_selected_view()
-    
+
 
     def refresh_selected_view(self):
-        ### refresh selected cad view 
+        ### refresh selected cad view
         data = gerber.read(self.sel_tool_path)
         data.to_metric()
         ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
@@ -711,7 +711,7 @@ class ListScreen(Screen):
         ctx.dump("./temp/temp_selected.png")
         self.cad_img_sel_path = "./temp/temp_selected.png"
         self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()    
+        self.ids["img_cad_selected"].reload()
     def take_tool_num(self, elem):
         return elem[3]
     def deselect_by_view(self):
@@ -756,15 +756,15 @@ class ListScreen(Screen):
             print(hit.position)
 
         hits = []
-        
+
         # Optimize tool path for each tool
         for tool, count in iter(hit_counts.items()):
 
             # Calculate distance matrix
-            distance_matrix = [[math.hypot(*tuple(map(sub, 
-                                                      positions[tool][i], 
-                                                      positions[tool][j]))) 
-                                for j in iter(range(count))] 
+            distance_matrix = [[math.hypot(*tuple(map(sub,
+                                                      positions[tool][i],
+                                                      positions[tool][j])))
+                                for j in iter(range(count))]
                                 for i in iter(range(count))]
 
             # Calculate new path
@@ -777,7 +777,7 @@ class ListScreen(Screen):
         f.hits = hits
         f.filename = self.sel_tool_path
         f.write()
-        
+
         # Print drill report
         print(f.report())
         print('Original path length:  %1.4f' % oldpath)
@@ -795,11 +795,11 @@ class ListScreen(Screen):
         self.panel_num  = int(txt_port)
         self.reference_printer["1"] = [(0.0,0.0,0.0)]*self.panel_num
         self.reference_printer["2"] = [(0.0,0.0,0.0)]*self.panel_num
-        
+
         self.dismiss_popup()
 
     def set_reference_panel(self):
-        
+
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
         self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
         self.content.ids["cur_X"].text = str(self.TravelX)
@@ -809,11 +809,11 @@ class ListScreen(Screen):
 
         if self.printer_connect() is False:
             return
-        
+
         gcode = self.send_gcode_from_template(self.g_home)
         gcode1 = gcoder.LightGCode(gcode)
         self.print.startprint(gcode1)
-            
+
         self._popup = Popup(title="Set reference point", content=self.content,
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
@@ -836,14 +836,14 @@ class ListScreen(Screen):
         self.CoordX = round(self.CoordX, 5)
         self.CoordY = round(self.CoordY, 5)
         self.CoordZ = round(self.CoordZ, 5)
-        
+
         self.content.ids["cur_X"].text = str(self.CoordX)
         self.content.ids["cur_Y"].text = str(self.CoordY)
         self.content.ids["cur_Z"].text = str(self.CoordZ)
         #### go to printer point (gcode sent)
         temp_gcode = self.send_gcode_from_template(self.g_go)
         print("#### control dialpad ===>", temp_gcode)
-        
+
     def go_XYZ(self, next_x, next_y, next_z):
         ### click go button on dialpad
         self.CoordX = round(float(next_x), 5)
@@ -852,7 +852,7 @@ class ListScreen(Screen):
         #### go to printer point (gcode sent)
         temp_gcode = self.send_gcode_from_template(self.g_go)
         print("#### control dialpad go! ===>", temp_gcode)
-        
+
     def save_XYZ(self, cur_panel, cur_x, cur_y, cur_z, refer):
         ### click Set 1 and Set 2 button refer = 1 ==> Set 1, refer = 2 ==> Set 2
         try:
@@ -866,7 +866,7 @@ class ListScreen(Screen):
                 print("please enter 1~" + str(self.panel_num))
         except:
             print("please enter correct current panel")
-        
+
     #### Connect menu
     def set_printer(self):
         ### Connect Menu /  Connect Printer
@@ -878,7 +878,7 @@ class ListScreen(Screen):
     def save_printer_port(self, txt_port):
         self.printer_post = txt_port
         self.dismiss_popup()
-        
+
     def set_camera(self):
         content = EditPopup(save=self.save_camera_port, cancel=self.dismiss_popup)
         content.ids["text_port"].text = self.cam_port
@@ -903,14 +903,14 @@ class ListScreen(Screen):
         qx = tx + (math.cos(radians) * (x - ox) + math.sin(radians) * (y - oy))*scale
         qy = ty + (-math.sin(radians) * (x - ox) + math.cos(radians) * (y - oy))*scale
 
-        return qx, qy    
+        return qx, qy
     def get_soldering_setting(self):
         ### get selected soldering profile
-        
+
         self.SolderLength = self.sel_sol_profile_settings["SolderLength"]
         self.Melting = self.sel_sol_profile_settings["Melting"]
         self.Heatup = self.sel_sol_profile_settings["Heatup"]
-        
+
         self.SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
         self.SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
         self.SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
@@ -923,7 +923,7 @@ class ListScreen(Screen):
             if self.reference_1 != "" and self.reference_2 != "":
                 if self.printer_connect() is False:
                     return
-                
+
                 gcode = self.send_gcode_from_template(self.g_header)
                 # or pass in your own array of gcode lines instead of reading from a file
                 gcode1 = gcoder.LightGCode(gcode)
@@ -932,24 +932,24 @@ class ListScreen(Screen):
                 self.ids["btn_start"].text = "pause soldering"
                 self.get_soldering_setting()
                 gcode.extend(self.panel_soldering(self.g_solder))
-                gcode.extend(self.send_gcode_from_template(self.g_footer))     
-                
+                gcode.extend(self.send_gcode_from_template(self.g_footer))
+
                 with open("./temp/gcode.txt", 'w') as wf:
                     print(gcode)
                     for temp in gcode:
                         wf.write(temp+"\n")
                 wf.close()
                 #print(gcode)
-                
+
         else:
             if self.b_start_soldering and self.b_started:
-                
+
                 if self.print is not None:
                     self.b_start_soldering = False
                     self.ids["btn_start"].text = "pause soldering"
                     self.print.resume()
             elif self.b_start_soldering == False and self.b_started:
-                
+
                 if self.print is not None:
                     self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
                     self.print.pause() # use these to pause/resume the current print
@@ -967,19 +967,19 @@ class ListScreen(Screen):
             # nc drill reference point
             xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
             xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
-            
+
             backside=1 # set backside to -1 on bottom layer
             xp1=xp1_0*backside
             yp1=yp1_0
-            
+
             # 3d printer reference point 1 for k' th panel
             x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
             xp2=xp2_0*backside
             yp2=yp2_0
-            
+
             # 3d printer reference point 2 for k' th panel
             x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
-            
+
             v1=array([x1,y1])
             vp1=array([xp1,yp1])
             v2=array([x2,y2])
@@ -991,7 +991,7 @@ class ListScreen(Screen):
             c = dot(dv,dvp)/(vlen*vplen)
             radians = arccos(c)
             scale = vlen / vplen
-            
+
             data = gerber.read(self.sel_tool_path)
             data.to_metric()
             gcode.append("; panel " + str(k+1) + " start")
@@ -1012,10 +1012,10 @@ class ListScreen(Screen):
 
                 #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
                 gcode.extend(self.send_gcode_from_template(template))
-        return gcode       
+        return gcode
     def stop_soldering(self):
         self.printer_disconnect()
-        
+
     def test_soldering(self):
         if self.ids["btn_test"].text == "test soldering" and self.b_started is False:
             if self.reference_1 != "" and self.reference_2 != "":
@@ -1030,15 +1030,15 @@ class ListScreen(Screen):
                 self.ids["btn_test"].text = "pause soldering"
                 self.get_soldering_setting()
                 gcode.extend(self.panel_soldering(self.g_test))
-                gcode.extend(self.send_gcode_from_template(self.g_footer))     
-                
+                gcode.extend(self.send_gcode_from_template(self.g_footer))
+
                 with open("./temp/gcode.txt", 'w') as wf:
                     print(gcode)
                     for temp in gcode:
                         wf.write(temp+"\n")
                 wf.close()
                 #print(gcode)
-                
+
         else:
             if self.b_start_soldering and self.b_test_started:
                 if self.print is not None:
@@ -1051,7 +1051,7 @@ class ListScreen(Screen):
                     self.ids["btn_test"].text = "resume soldering"
                     #If you need to interact with the printer:
                     self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
-                    self.print.pause() # use these to pause/resume the current print  
+                    self.print.pause() # use these to pause/resume the current print
 
     def dismiss_popup(self):
         self.printer_disconnect()
@@ -1071,7 +1071,7 @@ class ListScreen(Screen):
             self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
             waiting_counter = 1
             ### not printer online, wait , after 1 sec, connect failed
-            while not self.print.online: 
+            while not self.print.online:
                 self.status_printer = " 3d printer connecting..."
                 self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
                 time.sleep(0.1)
@@ -1115,11 +1115,11 @@ class ListScreen(Screen):
 
             self.print.send(converted_line)
             gcode.append(converted_line)
-        return gcode 
+        return gcode
     def show_status(self, dt):
         if  self.ids is not "":
-            #self.ids["lbl_cad_cam"].text = " Camera connected" 
-            if self.print is not None and (self.b_started or self.b_test_started): 
+            #self.ids["lbl_cad_cam"].text = " Camera connected"
+            if self.print is not None and (self.b_started or self.b_test_started):
                 try:
                     (layer, line) = self.print.mainqueue.idxs(self.print.queueindex)
                     gline = self.print.mainqueue.all_layers[layer][line]
@@ -1129,20 +1129,20 @@ class ListScreen(Screen):
                         self.print.disconnect()
                 except Exception as e:
                     self.print.disconnect()
-                    
+
 
 class MyApp(App):
-    
+
     def check_resize(self, instance, x, y):
         # resize X
         if x > MAX_SIZE[0]:
             Window.size = (1280, Window.size[1])
         # resize Y
         if y > MAX_SIZE[1]:
-            Window.size = (Window.size[0], 768)   
+            Window.size = (Window.size[0], 768)
     def mainscreen(self):
         screen["screen"] = "main"
-        
+
     def build(self):
         self.title = 'THT Soldering Robot'
         Window.size = (1280, 768)
