@@ -139,3 +139,7 @@ def go_home(data):
 # convert gcode into an array of single commands
 def make_array(gcode):
     return gcode.splitlines()
+
+# strip off the command before sending to printer
+def strip_comment(gcode):
+    return gcode.split(';')[0]

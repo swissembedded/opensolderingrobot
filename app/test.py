@@ -194,6 +194,12 @@ if "G28" in gcode and "G90" in gcode:
 else:
 	print("nok home", gcode)
 
+gcode=robotcontrol.strip_comment("G28; this is a comment")
+if gcode=="G28":
+	print("ok strip")
+else:
+	print("nok strip",gcode)
+	
 # create g-code for soldering
 prjdata['Panel']=panel
 prjdata['SolderToolpath']=soldertoolpath
