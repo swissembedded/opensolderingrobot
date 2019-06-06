@@ -208,12 +208,16 @@ class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
         # run clock
+        # TODO
         Clock.schedule_interval(self.init_gui, 0.2)
-        Clock.schedule_interval(self.show_status, 0.03)
+        #Clock.schedule_interval(self.show_status, 0.03)
+
     def init_gui(self, dt):
         self.new_file()
         Clock.unschedule(self.init_gui)
-        Clock.schedule_interval(self.cam_update, 0.03)
+        #TODO
+        #Clock.schedule_interval(self.cam_update, 0.03)
+
     def cam_update(self, dt):
         try:
             _, frame = self.capture.read()
@@ -224,6 +228,7 @@ class ListScreen(Screen):
             self.ids['img_cam'].texture = texture1
         except Exception as e:
             pass
+
     #### File menu
     def exit_app(self):
         self.camera_disconnect()
@@ -242,7 +247,6 @@ class ListScreen(Screen):
         # init data
         self.project_data=data.init_project_data()
         self.project_file_path = ""
-
         try:
             self.camera_disconnect()
             self.camera_connect()
@@ -320,64 +324,33 @@ class ListScreen(Screen):
 
     def select_profile(self):
         ### Program menu / Select Soldering Profile
-        self.items_soldering_profile.clear()
-        solderingprofile=self.project_data["SolderingProfile"]["SolderingProfile"]
-        temp_soldering_profile = []
-        for i in range(len(solderingprofile)):
-            if i == self.project_data['SelectedSolderingProfile']:
-                dic_solder = {'text':solderingprofile[i]["Id"], 'is_selected': True}
-                self.b_init_soldering = False
-            else:
-                dic_solder = {'text':self.sol_profile_settings["SolderingProfile"][i]["Id"], 'is_selected': False}
-            temp_soldering_profile.append(dic_solder)
-
-            self.items_soldering_profile.append(self.sol_profile_settings["SolderingProfile"][i])
-
+        profile = excellon.convert_to_solderingprofile(self.project_data)
+        if len(profile) < 1:
+            return
         content = ListPopup()
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 50}
-        list_adapter = ListAdapter(data=temp_soldering_profile, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_adapter = ListAdapter(data=profile, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
         list_view = ListView(adapter=list_adapter)
 
         content.ids.profile_list.add_widget(list_view)
 
         list_view.adapter.bind(on_selection_change=self.selected_profile)
 
-
         self._popup = Popup(title="Select soldering profile", content=content, size_hint=(0.5, 0.6))
         self._popup.open()
 
     def selected_profile(self, adapter):
         ### select profile on soldering profile list
-        if self.b_init_soldering:
-            self.sel_soldering_profile = adapter.selection[0].text
-            self.sel_sol_profile_settings = self.get_profile(self.sel_soldering_profile)
-            self.ids.lbl_solder_status.text = self.sel_soldering_profile + " / " + self.sel_dia_tool
-            self.dismiss_popup()
-        else:
-            self.b_init_soldering = True
-
-    def get_profile(self, Id):
-        ### get selected soldering profile json data from id
-        for temp in self.sol_profile_settings["SolderingProfile"]:
-            if temp["Id"] == Id:
-                return temp
+        self.project_data['SelectedSolderingProfile']=adapter.selection[0].id
+        self.dismiss_popup()
 
     def select_by_dia(self):
         ### Program Menu / Select soldering pad by diameter
-        if len(self.item_nc_tools) < 1:
+        if len(self.project_data['NCTool']) < 1:
             return
-        temp_tools = []
-        for tool in self.item_nc_tools:
-            if self.sel_dia_tool == tool:
-                dic_temp = {'text': tool, 'is_selected': True}
-                self.b_init_dia_tool = False
-            else:
-                dic_temp = {'text': tool, 'is_selected': False}
-            temp_tools.append(dic_temp)
-
         content = ListPopup()
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 40}
-        list_adapter = ListAdapter(data=temp_tools, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_adapter = ListAdapter(data=self.project_data['NCTool'], args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
         list_view = ListView(adapter=list_adapter)
 
         content.ids.profile_list.add_widget(list_view)
@@ -388,42 +361,10 @@ class ListScreen(Screen):
 
     def selected_tools(self, adapter):
         ### select tool on tools' list
-        if self.b_init_dia_tool:
-            self.sel_dia_tool = adapter.selection[0].text
-            self.ids.lbl_solder_status.text = self.sel_soldering_profile + " / " + self.sel_dia_tool
-            self.dismiss_popup()
-            self.write_by_dia(int(self.sel_dia_tool.split(" : ")[0]))
-        else:
-            self.b_init_dia_tool = True
+        soldertoolpath=self.project_data['SolderToolpath']
+        excellon.select_by_tool(soldertoolpath, adapter.selection[0].id, self.project_data['SelectedSolderingProfile'])
+        self.dismiss_popup()
 
-    def write_by_dia(self, sel_tool):
-        ### write nc drills selected by dia to file
-        str_00_tool = "T" + '{:02d}'.format(sel_tool)
-        str_tool = "T" + str(sel_tool)
-        b_start = False
-
-        with open(self.nc_file_path, 'r') as f:
-            data = f.read()
-        self.sel_tool_path = "./temp/sel_dia_excellon.txt"
-        with open(self.sel_tool_path, 'w') as wf:
-            for line in StringIO(data):
-                line_temp = line.strip()
-                if line_temp[0] == "T":
-                    arr_line_temp = line_temp.split("F")
-                    if str_tool == arr_line_temp[0] and len(arr_line_temp)>1:
-                        wf.write(line_temp + '\n')
-                    elif str_00_tool == line_temp:
-                        b_start = True
-                        wf.write(line_temp + '\n')
-                    else:
-                        b_start = False
-                elif line_temp[0] in ['X', 'Y']:
-                    if b_start:
-                        wf.write(line_temp + '\n')
-                else:
-                    wf.write(line_temp + '\n')
-        wf.close()
-        self.refresh_selected_view()
     def select_by_view(self):
         ### Program menu / Select Soldering pads by View
         if len(sel_hit_info) < 1:
@@ -519,66 +460,25 @@ class ListScreen(Screen):
         del sel_draw_hit_info[-1]
         sel_last_hit_info["second"] = sel_last_hit_info["last"]
         self.ids["img_cad_origin"].draw_selected_drill()
+
     def optmize_nc(self):
         ### Program Menu / Optmize NC drills
-        if self.sel_tool_path == "":
-            return
-        # Read the excellon file
-        f = gerber.read(self.sel_tool_path)
-
-        positions   = {}
-        tools   = {}
-        hit_counts = f.hit_count()
-        oldpath = sum(f.path_length().values())
-
-        for hit in f.hits:
-            tool_num = hit.tool.number
-            if tool_num not in positions.keys():
-                positions[tool_num]   = []
-            positions[tool_num].append(hit.position)
-            print(hit.position)
-
-        hits = []
-
-        # Optimize tool path for each tool
-        for tool, count in iter(hit_counts.items()):
-
-            # Calculate distance matrix
-            distance_matrix = [[math.hypot(*tuple(map(sub,
-                                                      positions[tool][i],
-                                                      positions[tool][j])))
-                                for j in iter(range(count))]
-                                for i in iter(range(count))]
-
-            # Calculate new path
-            path = solve_tsp(distance_matrix, 50)
-
-            # Create new hits list
-            hits += [DrillHit(f.tools[tool], positions[tool][p]) for p in path]
-
-        # Update the file
-        f.hits = hits
-        f.filename = self.sel_tool_path
-        f.write()
-
-        # Print drill report
-        print(f.report())
-        print('Original path length:  %1.4f' % oldpath)
-        print('Optimized path length: %1.4f' % sum(f.path_length().values()))
+        soldertoolpath=self.project_data['SolderToolpath']
+        excellon.optimize_soldertoolpath(soldertoolpath)
 
     ##### panel menu
     def set_num_panel(self):
+        num=excellon.get_num_panel(self.project_data['Panel'])
         content = EditPopup(save=self.save_panel_num, cancel=self.dismiss_popup)
         content.ids["btn_connect"].text = "Save"
-        content.ids["text_port"].text = str(self.panel_num)
+        content.ids["text_port"].text = str(num)
         self._popup = Popup(title="Select panel num", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
-    def save_panel_num(self, txt_port):
-        self.panel_num  = int(txt_port)
-        self.reference_printer["1"] = [(0.0,0.0,0.0)]*self.panel_num
-        self.reference_printer["2"] = [(0.0,0.0,0.0)]*self.panel_num
 
+    def save_panel_num(self, txt_port):
+        num  = int(txt_port)
+        excellon.set_num_panel(self.project_data['Panel'], num)
         self.dismiss_popup()
 
     def set_reference_panel(self):
@@ -837,7 +737,8 @@ class ListScreen(Screen):
                     self.print.pause() # use these to pause/resume the current print
 
     def dismiss_popup(self):
-        self.printer_disconnect()
+        #TODO
+        #self.printer_disconnect()
         self._popup.dismiss()
     def camera_connect(self):
         ### connect camera

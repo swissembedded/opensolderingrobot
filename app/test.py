@@ -44,6 +44,14 @@ if num==1:
 	print("ok tools")
 else:
 	print("nok tools", num, tools)
+
+profile=excellon.convert_to_solderingprofile(prjdata)
+num = len(profile)
+if num == len(prjdata['SolderingProfile']['SolderingProfile']):
+	print("ok profile")
+else:
+	print("nok profile", num, profile)
+
 # convert it to json
 soldertoolpath=excellon.convert_to_json(ncdata)
 num=len(soldertoolpath)
@@ -199,7 +207,7 @@ if gcode=="G28":
 	print("ok strip")
 else:
 	print("nok strip",gcode)
-	
+
 # create g-code for soldering
 prjdata['Panel']=panel
 prjdata['SolderToolpath']=soldertoolpath

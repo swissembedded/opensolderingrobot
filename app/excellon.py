@@ -31,7 +31,7 @@ def load_nc_drill(name):
 def convert_to_tools(ncdata):
     tools=[]
     for tool in iter(ncdata.tools.values()):
-        tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
+        tools.append( {"id": tool.number, "text" : str(tool.number) + " : " + str(tool.diameter) + "mm", "is_selected" : False} )
     return tools
 
 # fill up data structure with nc drill
@@ -67,6 +67,15 @@ def select_by_tool(soldertoolpath, tool, solderingprofile):
         tp=soldertoolpath[e]
         if soldertoolpath[e]['NCTool']==tool:
             soldertoolpath[e]['SolderingProfile']=solderingprofile
+
+# fill up data structure with soldering profile
+def convert_to_solderingprofile(data):
+    profile=[]
+    solderingprofile = data['SolderingProfile']['SolderingProfile']
+    for p, elem in enumerate(solderingprofile):
+        profile.append( {"id": p, "text" : solderingprofile[p]['Id'], "is_selected" : p==data['SelectedSolderingProfile']} )
+    return profile
+
 
 # get the soldertoolpath index by position
 def helper_get_index_by_position(soldertoolpath, x, y):
