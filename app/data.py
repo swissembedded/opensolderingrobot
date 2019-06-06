@@ -35,6 +35,8 @@ def init_project_data():
             # read soldering profiles
             "SolderingProfile" : helper_read_json("solderingprofile"),
             "SelectedSolderingProfile" : 0, # take first entry ListPopup on new project
+            # NC Drill
+            "NCTool": {},
             # read g-code templates
             "GHome" : helper_read_txt("printerhome"),
             "GHeader" : helper_read_txt("printerheader"),
@@ -57,7 +59,7 @@ def init_project_data():
                         # { "NCId" : 0, "NCPositionX": 0, "NCPositionY": 0, "NCDiameter":0, "NCTool":0, "PanelRef1": True, "PanelRef2":False, "SolderingProfile":-1, "ToolPathSorting" }
                         ],
             # excellon
-            "SolderSide": "Top", # let user choose on import of nc file            
+            "SolderSide": "Top", # let user choose on import of nc file
         }
     return data
 

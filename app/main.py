@@ -1,5 +1,19 @@
-
-############ Susanna edited #########
+# Gerber / Excellon handling
+# This file is part of the opensoldering project distribution (https://github.com/swissembedded/opensolderingrobot.git).
+# Copyright (c) 2019 by Susanna
+# Copyright (c) 2019 by Daniel Haensse
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import time
 from kivy.app import App
@@ -46,9 +60,16 @@ except(ImportError):
 #to send a file of gcode to the printer
 from printrun.printcore import printcore
 from printrun import gcoder
+
+import data
+import excellon
+import robotcontrol
+
 # to transform g-code
 from numpy import (array, dot, arccos, clip, subtract, arcsin, arccos)
 from numpy.linalg import norm
+
+
 
 MAX_SIZE = (1280, 768)
 Config.set('graphics', 'width', MAX_SIZE[0])
@@ -182,72 +203,11 @@ class ErrorDialog(Popup):
 class ScreenManagement(ScreenManager):
     pass
 
+### this is the main screen
 class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
-        self.b_init_soldering = True
-        self.b_init_dia_tool = True
-        self.items_soldering_profile = []
-        self.item_nc_tools = []
-        self.sel_soldering_profile = ""
-        self.sel_dia_tool = ""
-
-        self.nc_file_path = ""
-        self.sel_tool_path = ""
-        self.cad_img_origin_path = ""
-        self.cad_img_sel_path = ""
-        self.panel_num = 1
-        self.cur_panel_num = 1
-
-        ### setup settings
-        self.setup_settings = ""
-        self.sol_profile_settings = ""
-        self.sel_sol_profile_settings = ""
-        self.nc_settings = ""
-        self.nc_hits = ""
-        self.nc_tools = ""
-        self.g_home = ""
-        self.g_header = ""
-        self.g_solder = ""
-        self.g_footer = ""
-        self.g_test = ""
-        self.g_go = ""
-        self.reference_1 = ""
-        self.reference_2 = ""
-        self.reference_printer = {"1":[(0.0,0.0,0.0)], "2":[(0.0,0.0,0.0)]}
-        self.nc_file_data = ""
-        self.nc_selected_file_data = ""
-        self.project_file_path = ""
-        #### port settings
-        self.cam_port = ""
-        self.printer_port = ""
-
-        #### soldering settings
-        self.b_start_soldering = False
-        self.b_started = False
-        self.b_test_started = False
-
-        #### camera and printer object
-        self.print = None
-        self.capture = None
-
-        self.status_cam = ""
-        self.status_printer = ""
-        self.TravelZ = 0
-        self.ApproxX = 0
-        self.ApproxY = 0
-        self.ApproxZ = 0
-        self.SolderX = 0
-        self.SolderY = 0
-        self.SolderZ = 0
-        self.Heatup = 0
-        self.Melting = 0
-        self.TravelX = 0
-        self.TravelY = 0
-        self.CoordX = 0
-        self.CoordY = 0
-        self.CoordZ = 0
-
+        # run clock
         Clock.schedule_interval(self.init_gui, 0.2)
         Clock.schedule_interval(self.show_status, 0.03)
     def init_gui(self, dt):
@@ -274,107 +234,21 @@ class ListScreen(Screen):
         self.init_project()
 
         # init cad view
-        self.ids["img_cad_origin"].source = self.cad_img_origin_path
-        self.ids["img_cad_origin"].reload()
-        self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()
+        # TODO
         # init status bar
-        self.ids["lbl_cad_cam"].text = ""
-        self.ids["lbl_solder_status"].text = self.sel_soldering_profile + " / " + self.sel_dia_tool
+        # TODO
 
     def init_project(self):
-        # erase(initialize) all data
-        self.nc_file_path = ""
-        self.sel_tool_path = ""
-        self.cad_img_origin_path = ""
-        self.cad_img_sel_path = ""
-        self.items_soldering_profile = []
-        self.sel_soldering_profile = ""
-        self.sel_dia_tool = ""
-
-        with open('setup.json', 'r') as f:
-            self.setup_settings = json.load(f)
-
-        self.printer_port = self.setup_settings["RobotPort"]
-        self.cam_port = self.setup_settings["CameraPort"]
-
-        self.TravelX = self.setup_settings["TravelX"]
-        self.TravelY = self.setup_settings["TravelY"]
-        self.TravelZ = self.setup_settings["TravelZ"]
-
-        with open('solderingprofile.json', 'r') as f:
-            self.sol_profile_settings = json.load(f)
-
-        self.sel_soldering_profile = self.sol_profile_settings["SolderingProfile"][0]["Id"]
-        self.sel_sol_profile_settings = self.sol_profile_settings["SolderingProfile"][0]
-
-        #with open('excellon.json', 'r') as f:
-        #        self.nc_settings = json.load(f)
-        self.nc_hits = ""
-        self.nc_tools = ""
-
-        with open("printerhome.txt", 'r') as f:
-            self.g_home = f.read()
-        with open("printerheader.txt", 'r') as f:
-            self.g_header = f.read()
-        with open("printerfooter.txt", 'r') as f:
-            self.g_test = f.read()
-        with open("printersoldertest.txt", 'r') as f:
-            self.g_footer = f.read()
-        with open("printersolder.txt", 'r') as f:
-            self.g_solder = f.read()
-        with open("printergo.txt", 'r') as f:
-            self.g_go = f.read()
-
-        self.reference_1 = ""
-        self.reference_2 = ""
-
-        self.nc_file_data = ""
-        self.nc_selected_file_data = ""
-
+        # init data
+        self.project_data=data.init_project_data()
         self.project_file_path = ""
 
-        self.ids["img_cad_origin"].deselect_drill()
         try:
             self.camera_disconnect()
             self.camera_connect()
         except Exception as e:
             print(e, "cam start")
             pass
-
-    def make_JSON(self):
-        ### make for saving project file
-        dic_data = {}
-        dic_data["Setup"] = self.setup_settings
-        dic_data["SolderingProfile"] = self.sol_profile_settings
-        dic_data["SelectedSolderingProfile"] = self.sel_sol_profile_settings
-        #dic_data["NCSettings"] = self.nc_settings
-
-        dic_data["GHome"] = self.g_home
-        dic_data["GHeader"] = self.g_header
-        dic_data["GSolder"] = self.g_solder
-        dic_data["GFooter"] = self.g_footer
-        dic_data["GTester"] = self.g_test
-        dic_data["GGo"] = self.g_go
-
-        ###
-        with open(self.nc_file_path, 'r') as f:
-            self.nc_file_data = f.read()
-
-        with open(self.sel_tool_path, 'r') as f:
-            self.nc_selected_file_data = f.read()
-
-        dic_data["NCFile"] = self.nc_file_data
-        dic_data["SelectedFile"] = self.nc_selected_file_data
-        dic_data["Panel_num"] = self.panel_num
-        dic_data["Panel_references"] = self.reference_printer
-        dic_data["NCReference1"] = self.reference_1
-        dic_data["NCReference2"] = self.reference_2
-        dic_data["Reference1_point"] = sel_last_hit_info["first"]
-        dic_data["Reference2_point"] = sel_last_hit_info["second"]
-        dic_data["SelectedDrills_draw"] =sel_draw_hit_info
-        dic_data["SelectedDrills"] = sel_hit_info
-        return dic_data
 
     def load_file(self):
         ### File Menu / Load project
@@ -387,9 +261,7 @@ class ListScreen(Screen):
         if self.project_file_path == "":
             self.save_as_file()
         else:
-            dic_data1 = self.make_JSON()
-            with open(self.project_file_path, 'w') as fp:
-                json.dump(dic_data1, fp, indent=4, sort_keys=True)
+            data.write_project_data(project_file_path, self.project_data)
 
     def save_as_file(self):
         ### File Menu / Save as Project
@@ -403,71 +275,20 @@ class ListScreen(Screen):
         ### load all info from pre saved project file
         try:
             ### if proper project file
-            with open(filename[0]) as json_data:
-                dic_data = json.load(json_data)
-                self.project_file_path = filename[0]
+            self.project_file_path = filename[0]
+            self.project_data=data.read_project_data(self.project_file_path)
         except:
             ### if not proper project file
             self.dismiss_popup()
             return
-        self.setup_settings = dic_data["Setup"]
-        self.sol_profile_settings = dic_data["SolderingProfile"]
-        self.sel_sol_profile_settings = dic_data["SelectedSolderingProfile"]
-        #self.nc_settings = dic_data["NCSettings"]
 
-        self.g_home = dic_data["GHome"]
-        self.g_header = dic_data["GHeader"]
-        self.g_solder = dic_data["GSolder"]
-        self.g_footer = dic_data["GFooter"]
-        self.g_test = dic_data["GTester"]
-        self.g_go = dic_data["GGo"]
-        self.nc_file_data = dic_data["NCFile"]
-        self.nc_selected_file_data = dic_data["SelectedFile"]
-        self.panel_num = dic_data["Panel_num"]
-        self.reference_printer = dic_data["Panel_references"]
-        self.reference_1 = dic_data["NCReference1"]
-        self.reference_2 = dic_data["NCReference2"]
-
-
-        self.nc_file_path = "./temp/nc_origin_file.txt"
-        self.sel_tool_path = "./temp/sel_dia_excellon.txt"
-
-        with open(self.nc_file_path, 'w') as wf:
-            wf.write(self.nc_file_data)
-        wf.close()
-
-        self.load_nc('', [self.nc_file_path])
-
-        with open(self.sel_tool_path, 'w') as wf:
-            wf.write(self.nc_selected_file_data)
-        wf.close()
-
-        self.refresh_selected_view()
-
-        ### draw reference point 1 and 2
-        if dic_data["Reference1_point"] != "":
-            sel_last_hit_info["first"] = dic_data["Reference1_point"]
-            sel_last_hit_info["last"] = sel_last_hit_info["first"]
-
-        if dic_data["Reference2_point"] != "":
-            sel_last_hit_info["second"] = dic_data["Reference2_point"]
-            sel_last_hit_info["last"] = sel_last_hit_info["second"]
-
-
-        sel_draw_hit_info = dic_data["SelectedDrills_draw"]
-        sel_hit_info = dic_data["SelectedDrills"]
-        self.ids["img_cad_origin"].draw_selected_drill()
+        self.refresh_cad_view()
         self.dismiss_popup()
 
     def save(self, path, filename):
         ### after click Save button of Save Dialog
-        if not ".json" in filename:
-            filename = filename + ".json"
-        with open(os.path.join(path, filename), 'w') as stream:
-            dic_data1 = self.make_JSON()
-            json.dump(dic_data1, stream, indent=4, sort_keys=True)
-
-            self.project_file_path = os.path.join(path, filename)
+        self.project_file_path = os.path.join(path, filename)
+        self.project_data=data.read_project_data(self.project_file_path)
         self.dismiss_popup()
 
     #### program menu ####
@@ -482,69 +303,29 @@ class ListScreen(Screen):
         ### after click load button of Loading button
 
         self.dismiss_popup()
-        self.item_nc_tools.clear()
-        self.nc_file_path = filename[0]
+        nc_file_path = filename[0]
 
         try:
-            # Read gerber and Excellon files
-            data = gerber.read(self.nc_file_path)
-            for tool in iter(data.tools.values()):
-                self.item_nc_tools.append(str(tool.number) + " : " + str(tool.diameter) + "mm")
-            hit_info.clear()
-
-            ### get relation between appeared Image Pixels and PCB coordinate
-            xmin = 100000
-            xmax = -100000
-            ymin = 100000
-            ymax = -100000
-            for hit in data.hits:
-                x, y = hit.position
-                radius = hit.tool.diameter/2
-                hit_info.append([x*10, y*10, radius*10, hit.tool.number])
-                xmin = min(x-radius, xmin)
-                xmax = max(x+radius, xmax)
-                ymin = min(y-radius, ymin)
-                ymax = max(y+radius, ymax)
-
-            bound_box["width"] = round((xmax-xmin)*10)
-            bound_box["height"] = round((ymax-ymin)*10)
-            bound_box["x"] = round(xmin*10)
-            bound_box["y"] = round(ymin*10)
-
-            self.nc_hits = data.hits
-            self.nc_tools = data.tools
-
-            data.to_metric()
-            # Rendering context
-            ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
-            data.render(ctx)
+            ncdata=excellon.load_nc_drill(nc_file_path)
         except Exception as e:
             print(e, "Load NC Drills")
             popup = ErrorDialog(self)
             popup.open()
             return
 
-        ctx.dump("./temp/temp_origin.png")
-        self.cad_img_origin_path = "./temp/temp_origin.png"
-        self.ids["img_cad_origin"].source = self.cad_img_origin_path
-        self.ids["img_cad_origin"].reload()
-        # get real image size
-        im = pil_image.open('./temp/temp_origin.png')
-        real_img_size["width"], real_img_size["height"] = im.size
+        # convert tool list for selection
+        self.project_data['NCTool']=excellon.convert_to_tools(ncdata)
+        # convert soldering tool path
+        self.project_data['SolderingToolPath']=excellon.convert_to_json(ncdata)
 
-        # show image with selected tool(dia)
-        self.b_init_dia_tool = True
-        self.sel_dia_tool = self.item_nc_tools[0]
-        self.write_by_dia(1)
-        self.ids["img_cad_origin"].deselect_drill()
     def select_profile(self):
         ### Program menu / Select Soldering Profile
         self.items_soldering_profile.clear()
-
+        solderingprofile=self.project_data["SolderingProfile"]["SolderingProfile"]
         temp_soldering_profile = []
-        for i in range(len(self.sol_profile_settings["SolderingProfile"])):
-            if self.sel_soldering_profile == self.sol_profile_settings["SolderingProfile"][i]["Id"]:
-                dic_solder = {'text':self.sol_profile_settings["SolderingProfile"][i]["Id"], 'is_selected': True}
+        for i in range(len(solderingprofile)):
+            if i == self.project_data['SelectedSolderingProfile']:
+                dic_solder = {'text':solderingprofile[i]["Id"], 'is_selected': True}
                 self.b_init_soldering = False
             else:
                 dic_solder = {'text':self.sol_profile_settings["SolderingProfile"][i]["Id"], 'is_selected': False}
@@ -574,11 +355,13 @@ class ListScreen(Screen):
             self.dismiss_popup()
         else:
             self.b_init_soldering = True
+
     def get_profile(self, Id):
         ### get selected soldering profile json data from id
         for temp in self.sol_profile_settings["SolderingProfile"]:
             if temp["Id"] == Id:
                 return temp
+
     def select_by_dia(self):
         ### Program Menu / Select soldering pad by diameter
         if len(self.item_nc_tools) < 1:
@@ -1131,21 +914,22 @@ class ListScreen(Screen):
                     self.print.disconnect()
 
 
+### Application
 class MyApp(App):
 
     def check_resize(self, instance, x, y):
         # resize X
         if x > MAX_SIZE[0]:
-            Window.size = (1280, Window.size[1])
+            Window.size = (MAX_SIZE[0], Window.size[1])
         # resize Y
         if y > MAX_SIZE[1]:
-            Window.size = (Window.size[0], 768)
+            Window.size = (Window.size[0], MAX_SIZE[1])
     def mainscreen(self):
         screen["screen"] = "main"
 
     def build(self):
         self.title = 'THT Soldering Robot'
-        Window.size = (1280, 768)
+        Window.size = MAX_SIZE
         Window.bind(on_resize=self.check_resize)
         self.screen_manage = ScreenManagement()
         return self.screen_manage
