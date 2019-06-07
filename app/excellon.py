@@ -18,6 +18,7 @@ import gerber
 from gerber.render.cairo_backend import GerberCairoContext
 from operator import sub
 from gerber.excellon import DrillHit
+import math
 
 # load nc drill, exception must be handled outside
 def load_nc_drill(name):
@@ -69,7 +70,7 @@ def select_by_tool(soldertoolpath, tool, selectedsolderingprofile):
         tp=soldertoolpath[e]
         if soldertoolpath[e]['NCTool']==tool:
             soldertoolpath[e]['SolderingProfile']=selectedsolderingprofile
-            print("selecintg", e,selectedsolderingprofile)
+            #print("selecintg", e,selectedsolderingprofile)
 
 # fill up data structure with soldering profile
 def convert_to_solderingprofile(data):
@@ -95,7 +96,8 @@ def helper_get_index_by_position(soldertoolpath, x, y):
         tp=soldertoolpath[e]
         posX=tp['NCPositionX']
         posY=tp['NCPositionY']
-        distance=abs(x-posX)+abs(y-posY)
+        radius=tp['NCDiameter']/2.0
+        distance=max(math.sqrt(math.pow(x-posX,2.0)+math.pow(y-posY,2.0))-radius,0.0)
         if nearestDistance==-1 or distance < nearestDistance:
             nearestIndex=e
             nearestDistance=distance
@@ -124,7 +126,7 @@ def get_reference_1(soldertoolpath):
 def set_reference_1(soldertoolpath,x,y):
     oldref=get_reference_1(soldertoolpath)
     if oldref !=-1:
-        soldertoolpath[e]['PanelRef1']=False
+        soldertoolpath[oldref]['PanelRef1']=False
     nearestIndex=helper_get_index_by_position(soldertoolpath, x, y)
     if nearestIndex!=-1:
         soldertoolpath[nearestIndex]['PanelRef1']=True
@@ -141,7 +143,7 @@ def get_reference_2(soldertoolpath):
 def set_reference_2(soldertoolpath,x,y):
     oldref=get_reference_2(soldertoolpath)
     if oldref !=-1:
-        soldertoolpath[e]['PanelRef2']=False
+        soldertoolpath[oldref]['PanelRef2']=False
     nearestIndex=helper_get_index_by_position(soldertoolpath, x, y)
     if nearestIndex!=-1:
         soldertoolpath[nearestIndex]['PanelRef1']=False

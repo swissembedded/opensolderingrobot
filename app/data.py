@@ -35,6 +35,8 @@ def init_project_data():
             # read soldering profiles
             "SolderingProfile" : helper_read_json("solderingprofile"),
             "SelectedSolderingProfile" : 0, # take first entry ListPopup on new project
+            # CADMode
+            "CADMode" : "Selection",
             # NC Drill
             "NCTool": {},
             # read g-code templates

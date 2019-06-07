@@ -93,59 +93,33 @@ def assure_path_exists(path):
         os.makedirs(dir)
 assure_path_exists("temp/")
 class TouchImage(Image):
+    def set_cad_view(self, prjdata):
+        # make it globally available
+        self.project_data=prjdata
 
-    def on_touch_down(self, touch):
-        ### mouse down event
-        return
-        if self.collide_point(*touch.pos):
-            try:
-                x_start, y_start = self.pos
-                width, height = self.size
-                ratio = height/real_img_size["height"]
-                ratio_width = real_img_size["width"]*ratio
-                x_delta = (width-ratio_width)/2
-                x_start += x_delta
-
-                x_end, y_end = x_start + ratio_width, y_start + height
-
-                cur_x, cur_y = touch.pos
-                if cur_x > x_start and cur_x < x_end and cur_y > y_start and cur_y < y_end:
-                    b_exist, dia, (pos_x, pos_y) = self.get_dia_true(touch.pos, ratio, x_start, y_start)
-
-                    if b_exist:
-                        temp = (pos_x, pos_y, dia)
-                        if temp in sel_draw_hit_info:
-                            sel_draw_hit_info.remove(temp)
-                        else:
-                            sel_draw_hit_info.append(temp)
-
-                        sel_last_hit_info["last"] = sel_draw_hit_info[-1]
-                        self.draw_selected_drill()
-
-
-            except:
-                return True
-            return True
-        return super(TouchImage, self).on_touch_down(touch)
-
-    def redraw_cad_view(self, soldertoolpath, solderside):
+    def redraw_cad_view(self):
         ### redraw the cad view
+        soldertoolpath=self.project_data['SolderToolpath']
+        solderside=self.project_data['SolderSide']
+        selectedsolderingprofile=self.project_data['SelectedSolderingProfile']
+        posxp, posyp=self.pos
         widthp, heightp = self.size
-        xmin, xmax, ymin, ymax=excellon.get_nc_tool_area(soldertoolpath)
+        xmin, xmax, ymin, ymax = excellon.get_nc_tool_area(soldertoolpath)
         width=xmax-xmin
         height=ymax-ymin
-
-        print(widthp, heightp, width, height)
 
         if width==0 or height==0:
             return
 
-        scale=min(widthp / width, heightp / height)
-
-        print(scale)
-
         self.canvas.after.clear()
         with self.canvas.after:
+                Color(0/255,0/255,0/255)
+                Rectangle(pos=(posxp, posyp), size=(widthp, heightp))
+                posxp=posxp+widthp*0.01
+                posyp=posyp+heightp*0.01
+                widthp*=0.98
+                heightp*=0.98
+                scale=min(widthp / width, heightp / height)
                 for e, elem in enumerate(soldertoolpath):
                     tp=soldertoolpath[e]
                     x=tp['NCPositionX']
@@ -155,72 +129,74 @@ class TouchImage(Image):
                     ref2=tp['PanelRef2']
                     profile=tp['SolderingProfile']
 
-                    print(x, y, d)
-
-                    xt, yt=excellon.get_pixel_position(soldertoolpath,x,y,width*scale,height*scale)
+                    xp, yp=excellon.get_pixel_position(soldertoolpath,x,y,width*scale,height*scale)
                     if ref1:
                         Color(255/255, 0/255, 0/255)
                     elif ref2:
                         Color(0/255, 0/255, 255/255)
                     elif profile!=-1:
-                        Color(255/255, 255/255, 255/255)
+                        if profile==selectedsolderingprofile:
+                            Color(128/255, 255/255, 128/255)
+                        else:
+                            Color(128/255, 128/255, 255/255)
                     else:
-                        Color(128/255, 128/255, 128/255)
-                    Ellipse(pos=(xt, yt), size=(d*scale, d*scale))
+                        Color(64/255, 64/255, 64/255)
+                    if solderside=="Top":
+                        Ellipse(pos=(xp+posxp, yp+posyp), size=(d*scale, d*scale))
+                    else:
+                        Ellipse(pos=(widthp-xp+posxp, yp+posyp), size=(d*scale, d*scale))
 
-    def draw_selected_drill(self):
-        ### draw all selected drills
-        self.canvas.after.clear()
-        with self.canvas.after:
+    def on_touch_down(self, touch):
+        ### mouse down event
+        print(touch.pos, self.pos, self.size)
+        #return super(TouchImage, self).on_touch_down(touch)
+        soldertoolpath=self.project_data['SolderToolpath']
+        solderside=self.project_data['SolderSide']
+        selectedsolderingprofile=self.project_data['SelectedSolderingProfile']
+        mode=self.project_data['CADMode']
+        posxp, posyp=self.pos
+        widthp, heightp = self.size
+        xmin, xmax, ymin, ymax=excellon.get_nc_tool_area(soldertoolpath)
+        width=xmax-xmin
+        height=ymax-ymin
 
-            for (pos_x, pos_y, dia) in sel_draw_hit_info:
-                x = pos_x - dia
-                y = pos_y - dia
-                Color(255/255, 0/255, 0/255)
-                Ellipse(pos=(x, y), size=(2*dia, 2*dia))
-        if sel_last_hit_info["first"] != "":
-            pos_x, pos_y, dia = sel_last_hit_info["first"]
-            with self.canvas.after:
-                x = pos_x - dia
-                y = pos_y - dia
-                Color(0/255, 0/255, 255/255)
-                Ellipse(pos=(x, y), size=(2*dia, 2*dia))
-        if sel_last_hit_info["second"] != "":
-            pos_x, pos_y, dia = sel_last_hit_info["second"]
-            with self.canvas.after:
-                x = pos_x - dia
-                y = pos_y - dia
-                Color(0/255, 255/255, 0/255)
-                Ellipse(pos=(x, y), size=(2*dia, 2*dia))
+        if width==0 or height==0:
+            return
 
-    def get_dia_true(self, pos, ratio, x_start, y_start):
-        ### get drill hit on current mouse position,
-        ### pos => mouse point, ratio => real image/ nc drills coord, x_start, y_start => computed nc drill coords.
-        for i in range(len(hit_info)):
-            x, y, radius, tool_num = hit_info[i]
-            cur_x, cur_y = pos
-            x_min = (x - radius - bound_box["x"])*ratio + x_start
-            x_max = (x + radius - bound_box["x"])*ratio + x_start
-            y_min = (y - radius - bound_box["y"])*ratio + y_start
-            y_max = (y + radius - bound_box["y"])*ratio + y_start
-            if cur_x > x_min and cur_x < x_max and cur_y > y_min and cur_y < y_max:
-                pos_x = x_min + radius*ratio
-                pos_y = y_min + radius*ratio
+        # calculate click position
+        posxp=posxp+widthp*0.01
+        posyp=posyp+heightp*0.01
 
-                temp = (x/10, y/10, radius*2/10, tool_num)
-                if temp in sel_hit_info:
-                    sel_hit_info.remove(temp)
-                else:
-                    sel_hit_info.append(temp)
-                return True, radius*ratio, (pos_x, pos_y)
-        return False, 0, (0, 0)
-    def deselect_drill(self):
-        self.canvas.after.clear()
-        sel_draw_hit_info.clear()
-        sel_hit_info.clear()
-        sel_last_hit_info["first"]= ""
-        sel_last_hit_info["second"] = ""
+        # scaling
+        widthp*=0.98
+        heightp*=0.98
+        scale=min(widthp / width, heightp / height)
 
+        touchxp, touchyp=touch.pos
+
+        if solderside=="Top":
+            touchxp=touchxp-posxp
+            touchyp=touchyp-posyp
+        else:
+            touchxp=widthp-touchxp-posxp
+            touchyp=touchyp-posyp
+
+        xnc, ync = excellon.get_nc_tool_position(soldertoolpath,touchxp,touchyp,width*scale,height*scale)
+        #print("click",ymin,ymin, touchxp, touchyp, xnc, ync)
+        # out of image
+        if xnc < xmin or xnc > xmax or ync < ymin or ync > ymax:
+            return
+        # perform action on mode
+        if mode=="Select":
+            excellon.select_by_position(soldertoolpath, xnc, ync, selectedsolderingprofile)
+        elif mode=="Deselect":
+            excellon.deselect_by_position(soldertoolpath, xnc, ync)
+        elif mode=="Ref1":
+            excellon.set_reference_1(soldertoolpath, xnc, xnc)
+        elif mode=="Ref2":
+            excellon.set_reference_2(soldertoolpath, xnc, xnc)
+        self.redraw_cad_view()
+        return
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -292,7 +268,9 @@ class ListScreen(Screen):
         # init data
         self.project_file_path = ""
         self.project_data=data.init_project_data()
-        self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
+        self.project_data['CADMode']="None"
+        self.ids["img_cad_origin"].set_cad_view(self.project_data)
+        self.ids["img_cad_origin"].redraw_cad_view()
 
         try:
             self.camera_disconnect()
@@ -307,6 +285,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Load file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def load(self, path, filename):
         ### click load button of Loading Dialog
@@ -315,13 +294,11 @@ class ListScreen(Screen):
             ### if proper project file
             self.project_file_path =  filename[0]
             self.project_data=data.read_project_data(self.project_file_path)
-            self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
+            self.ids["img_cad_origin"].redraw_cad_view()
         except:
             ### if not proper project file
             self.dismiss_popup()
             return
-
-        self.refresh_cad_view()
         self.dismiss_popup()
 
     def save_file(self):
@@ -337,6 +314,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Save file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def save(self, path, filename):
         ### after click Save button of Save Dialog
@@ -353,6 +331,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Import file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def import_ncdrill(self, path, filename):
 
@@ -367,7 +346,7 @@ class ListScreen(Screen):
             # convert soldering tool path
             self.project_data['SolderToolpath']=excellon.convert_to_json(ncdata)
             # redraw
-            self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
+            self.ids["img_cad_origin"].redraw_cad_view()
 
         except:
             ### if not proper project file
@@ -394,6 +373,7 @@ class ListScreen(Screen):
 
         self._popup = Popup(title="Select Soldering Side", content=content, size_hint=(0.5, 0.6))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def selected_side(self, adapter):
         if self.ignore_first:
@@ -401,7 +381,7 @@ class ListScreen(Screen):
             return
         self.project_data['SolderSide']=adapter.selection[0].text
         self.dismiss_popup()
-        print(self.project_data['SolderSide'])
+        self.ids["img_cad_origin"].redraw_cad_view()
 
     def select_profile(self):
         ### Program menu / Select Soldering Profile
@@ -420,6 +400,7 @@ class ListScreen(Screen):
 
         self._popup = Popup(title="Select Soldering Profile", content=content, size_hint=(0.5, 0.6))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def selected_profile(self, adapter):
         ### select profile on soldering profile list
@@ -429,6 +410,8 @@ class ListScreen(Screen):
         num=excellon.get_solderingprofile_index_by_id(self.project_data['SolderingProfile']['SolderingProfile'], adapter.selection[0].text)
         self.project_data['SelectedSolderingProfile']=num
         self.dismiss_popup()
+        self.ids["img_cad_origin"].redraw_cad_view()
+
 
     def select_by_dia(self):
         ### Program Menu / Select soldering pad by diameter
@@ -447,6 +430,7 @@ class ListScreen(Screen):
 
         self._popup = Popup(title="Select Soldering Pad by Tools", content=content, size_hint=(0.5, 0.7))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def selected_tools(self, adapter):
         ### select tool on tools' list
@@ -457,104 +441,24 @@ class ListScreen(Screen):
         num=int(adapter.selection[0].text.split(":")[0])
         excellon.select_by_tool(soldertoolpath, num, self.project_data['SelectedSolderingProfile'])
         # redraw
-        self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
         self.dismiss_popup()
+        self.ids["img_cad_origin"].redraw_cad_view()
 
     def select_by_view(self):
         ### Program menu / Select Soldering pads by View
-        if len(sel_hit_info) < 1:
-            return
-        sel_hit_info.sort(key=self.take_tool_num)
+        self.project_data['CADMode']="Select"
 
-        with open(self.nc_file_path, 'r') as f:
-            data = f.read()
-        self.sel_tool_path = "./temp/sel_dia_excellon.txt"
-        with open(self.sel_tool_path, 'w') as wf:
-            pre_x, pre_y = "", ""
-            for line in StringIO(data):
-                line_temp = line.strip()
-                if line_temp[0] == "T":
-                    arr_line_temp = line_temp.split("F")
-                    previous_tool = ""
-                    for sel_hit in sel_hit_info:
-                        x, y, dia, sel_tool = sel_hit
-                        if sel_tool != previous_tool:
-                            str_00_tool = "T" + '{:02d}'.format(sel_tool)
-                            str_tool = "T" + str(sel_tool)
-                            if str_tool == arr_line_temp[0] and len(arr_line_temp)>1:
-                                wf.write(line_temp + '\n')
-                            elif str_00_tool == line_temp:
-                                wf.write(line_temp + '\n')
-
-                        previous_tool = sel_tool
-                elif line_temp[0] in ['X', 'Y']:
-                    arr_temp = line_temp.split("Y")
-                    if len(arr_temp)==1:
-                        cur_y = pre_y
-                        cur_x = arr_temp[0]
-                    else:
-                        if arr_temp[0] == '':
-                            cur_x = pre_x
-                            cur_y = arr_temp[1]
-                        else:
-                            cur_x = arr_temp[0]
-                            cur_y = arr_temp[1]
-
-                    for sel_hit in sel_hit_info:
-                        x, y, dia, sel_tool = sel_hit
-                        x = int(x*1000000)
-                        y = int(y*1000000)
-                        str_x = str(x).replace(".","").replace("0","")
-                        str_y = str(y).replace(".","").replace("0","")
-                        temp_cur_x = str(int(cur_x.replace("X", ""))*1000000).replace("0","")
-                        temp_cur_y = str(int(cur_y)*1000000).replace("0","")
-
-                        if temp_cur_x == str_x and temp_cur_y == str_y:
-                            wf.write(cur_x + "Y" + cur_y + '\n')
-                            #wf.write(line_temp + '\n')
-
-                    pre_x = cur_x
-                    pre_y = cur_y
-                else:
-                    wf.write(line_temp + '\n')
-        wf.close()
-        self.refresh_selected_view()
-
-
-    def refresh_selected_view(self):
-        ### refresh selected cad view
-        data = gerber.read(self.sel_tool_path)
-        data.to_metric()
-        ctx = GerberCairoContext(scale=1.0/0.1) # Scale is pixels/mm
-        data.render(ctx)
-        ctx.dump("./temp/temp_selected.png")
-        self.cad_img_sel_path = "./temp/temp_selected.png"
-        self.ids["img_cad_selected"].source = self.cad_img_sel_path
-        self.ids["img_cad_selected"].reload()
-    def take_tool_num(self, elem):
-        return elem[3]
     def deselect_by_view(self):
         ### Program Menu / Deselect by view
-        self.ids["img_cad_origin"].deselect_drill()
-        self.ids["img_cad_selected"].source = ""
+        self.project_data['CADMode']="Deselect"
+
     def set_reference1(self):
         ### Program Menu / Set Reference point 1
-        if len(sel_hit_info) < 1:
-            return
-        self.reference_1 = sel_hit_info[len(sel_hit_info)-1]
-        del sel_hit_info[-1]
-        del sel_draw_hit_info[-1]
-        sel_last_hit_info["first"] = sel_last_hit_info["last"]
-        self.ids["img_cad_origin"].draw_selected_drill()
+        self.project_data['CADMode']="Ref1"
+
     def set_reference2(self):
         ### Program Menu /  Set Reference Point 2
-        if len(sel_hit_info) < 1:
-            return
-        self.reference_2 = sel_hit_info[len(sel_hit_info)-1]
-        del sel_hit_info[-1]
-        del sel_draw_hit_info[-1]
-        sel_last_hit_info["second"] = sel_last_hit_info["last"]
-        self.ids["img_cad_origin"].draw_selected_drill()
+        self.project_data['CADMode']="Ref2"
 
     def optmize_nc(self):
         ### Program Menu / Optmize NC drills
@@ -570,6 +474,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Select panel num", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def save_panel_num(self, txt_port):
         # set num of panels
@@ -601,6 +506,7 @@ class ListScreen(Screen):
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def control_XYZ(self, axis, value):
         ### click any button on dialpad
@@ -659,6 +565,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Select Printer port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def save_printer_port(self, txt_port):
         self.printer_post = txt_port
@@ -671,6 +578,7 @@ class ListScreen(Screen):
         self._popup = Popup(title="Select Camera port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
+        self.project_data['CADMode']="None"
 
     def save_camera_port(self, txt_port):
         self.cam_port = txt_port
