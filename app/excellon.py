@@ -30,8 +30,10 @@ def load_nc_drill(name):
 # fill up data structure with nc drill
 def convert_to_tools(ncdata):
     tools=[]
+    first=True
     for tool in iter(ncdata.tools.values()):
-        tools.append( {"id": tool.number, "text" : str(tool.number) + " : " + str(tool.diameter) + "mm", "is_selected" : False} )
+        tools.append( {"text" : str(tool.number) + " : " + str(tool.diameter) + "mm", "is_selected" : first} )
+        first=False
     return tools
 
 # fill up data structure with nc drill
@@ -62,19 +64,27 @@ def convert_to_json(ncdata):
     return soldertoolpath
 
 # select all drill holes with certain tool (diameter)
-def select_by_tool(soldertoolpath, tool, solderingprofile):
+def select_by_tool(soldertoolpath, tool, selectedsolderingprofile):
     for e, elem in enumerate(soldertoolpath):
         tp=soldertoolpath[e]
         if soldertoolpath[e]['NCTool']==tool:
-            soldertoolpath[e]['SolderingProfile']=solderingprofile
+            soldertoolpath[e]['SolderingProfile']=selectedsolderingprofile
+            print("selecintg", e,selectedsolderingprofile)
 
 # fill up data structure with soldering profile
 def convert_to_solderingprofile(data):
     profile=[]
     solderingprofile = data['SolderingProfile']['SolderingProfile']
     for p, elem in enumerate(solderingprofile):
-        profile.append( {"id": p, "text" : solderingprofile[p]['Id'], "is_selected" : p==data['SelectedSolderingProfile']} )
+        profile.append( {"text" : solderingprofile[p]['Id'], "is_selected" : p==data['SelectedSolderingProfile']} )
     return profile
+
+# return the index of solderingprofile id
+def get_solderingprofile_index_by_id(solderingprofile, id):
+    for p, elem in enumerate(solderingprofile):
+        if solderingprofile[p]['Id']==id:
+            return p
+    return -1
 
 
 # get the soldertoolpath index by position

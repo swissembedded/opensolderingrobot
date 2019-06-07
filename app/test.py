@@ -52,6 +52,12 @@ if num == len(prjdata['SolderingProfile']['SolderingProfile']):
 else:
 	print("nok profile", num, profile)
 
+num=excellon.get_solderingprofile_index_by_id(prjdata['SolderingProfile']['SolderingProfile'], prjdata['SolderingProfile']['SolderingProfile'][0]['Id'])
+if num == 0:
+	print("ok profile by id")
+else:
+	print("nok profile by id", num)
+
 # convert it to json
 soldertoolpath=excellon.convert_to_json(ncdata)
 num=len(soldertoolpath)

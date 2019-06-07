@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import time
+import datetime
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ObjectProperty
@@ -95,6 +96,7 @@ class TouchImage(Image):
 
     def on_touch_down(self, touch):
         ### mouse down event
+        return
         if self.collide_point(*touch.pos):
             try:
                 x_start, y_start = self.pos
@@ -125,6 +127,47 @@ class TouchImage(Image):
                 return True
             return True
         return super(TouchImage, self).on_touch_down(touch)
+
+    def redraw_cad_view(self, soldertoolpath, solderside):
+        ### redraw the cad view
+        widthp, heightp = self.size
+        xmin, xmax, ymin, ymax=excellon.get_nc_tool_area(soldertoolpath)
+        width=xmax-xmin
+        height=ymax-ymin
+
+        print(widthp, heightp, width, height)
+
+        if width==0 or height==0:
+            return
+
+        scale=min(widthp / width, heightp / height)
+
+        print(scale)
+
+        self.canvas.after.clear()
+        with self.canvas.after:
+                for e, elem in enumerate(soldertoolpath):
+                    tp=soldertoolpath[e]
+                    x=tp['NCPositionX']
+                    y=tp['NCPositionY']
+                    d=tp['NCDiameter']
+                    ref1=tp['PanelRef1']
+                    ref2=tp['PanelRef2']
+                    profile=tp['SolderingProfile']
+
+                    print(x, y, d)
+
+                    xt, yt=excellon.get_pixel_position(soldertoolpath,x,y,width*scale,height*scale)
+                    if ref1:
+                        Color(255/255, 0/255, 0/255)
+                    elif ref2:
+                        Color(0/255, 0/255, 255/255)
+                    elif profile!=-1:
+                        Color(255/255, 255/255, 255/255)
+                    else:
+                        Color(128/255, 128/255, 128/255)
+                    Ellipse(pos=(xt, yt), size=(d*scale, d*scale))
+
     def draw_selected_drill(self):
         ### draw all selected drills
         self.canvas.after.clear()
@@ -186,6 +229,9 @@ class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
+class ImportDialog(FloatLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
 class ListPopup(BoxLayout):
     pass
 class EditPopup(BoxLayout):
@@ -238,15 +284,16 @@ class ListScreen(Screen):
         ## File menu / New Project
         self.init_project()
 
-        # init cad view
-        # TODO
+
         # init status bar
         # TODO
 
     def init_project(self):
         # init data
-        self.project_data=data.init_project_data()
         self.project_file_path = ""
+        self.project_data=data.init_project_data()
+        self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
+
         try:
             self.camera_disconnect()
             self.camera_connect()
@@ -260,27 +307,15 @@ class ListScreen(Screen):
         self._popup = Popup(title="Load file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
-    def save_file(self):
-        ### File Menu / Save Project
-        if self.project_file_path == "":
-            self.save_as_file()
-        else:
-            data.write_project_data(project_file_path, self.project_data)
-
-    def save_as_file(self):
-        ### File Menu / Save as Project
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Save file", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
 
     def load(self, path, filename):
         ### click load button of Loading Dialog
         ### load all info from pre saved project file
         try:
             ### if proper project file
-            self.project_file_path = filename[0]
+            self.project_file_path =  filename[0]
             self.project_data=data.read_project_data(self.project_file_path)
+            self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
         except:
             ### if not proper project file
             self.dismiss_popup()
@@ -289,44 +324,91 @@ class ListScreen(Screen):
         self.refresh_cad_view()
         self.dismiss_popup()
 
-    def save(self, path, filename):
-        ### after click Save button of Save Dialog
-        self.project_file_path = os.path.join(path, filename)
-        self.project_data=data.read_project_data(self.project_file_path)
-        self.dismiss_popup()
+    def save_file(self):
+        ### File Menu / Save Project
+        if self.project_file_path == "":
+            self.save_as_file()
+        else:
+            data.write_project_data(self.project_file_path, self.project_data)
 
-    #### program menu ####
-    def import_nc(self):
-        ### Program menu / import NC drills
-        content = LoadDialog(load=self.load_nc, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Load file", content=content,
+    def save_as_file(self):
+        ### File Menu / Save as Project
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Save file", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
 
-    def load_nc(self, path, filename):
-        ### after click load button of Loading button
-
+    def save(self, path, filename):
+        ### after click Save button of Save Dialog
+        self.project_file_path = os.path.join(path, filename)
+        print(path, filename, self.project_file_path)
+        data.write_project_data(self.project_file_path, self.project_data)
         self.dismiss_popup()
-        nc_file_path = filename[0]
 
+
+    #### program menu ####
+    def import_file(self):
+        ### Program menu / import NC drills
+        content = ImportDialog(load=self.import_ncdrill, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Import file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def import_ncdrill(self, path, filename):
+
+        ### after click load button of Loading button
         try:
+            ### if proper project file
+            nc_file_path  = filename[0]
             ncdata=excellon.load_nc_drill(nc_file_path)
-        except Exception as e:
-            print(e, "Load NC Drills")
-            popup = ErrorDialog(self)
-            popup.open()
+            print("ncdata", ncdata)
+            # convert tool list for selection
+            self.project_data['NCTool']=excellon.convert_to_tools(ncdata)
+            # convert soldering tool path
+            self.project_data['SolderToolpath']=excellon.convert_to_json(ncdata)
+            # redraw
+            self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
+
+        except:
+            ### if not proper project file
+            self.dismiss_popup()
             return
 
-        # convert tool list for selection
-        self.project_data['NCTool']=excellon.convert_to_tools(ncdata)
-        # convert soldering tool path
-        self.project_data['SolderingToolPath']=excellon.convert_to_json(ncdata)
+        self.dismiss_popup()
+
+
+    def select_side(self):
+        ### Program menu / Select Soldering Side
+        side = [  { "text" : "Top", "is_selected" : self.project_data['SolderSide']=="Top" },
+                { "text" : "Bottom", "is_selected" : self.project_data['SolderSide']=="Bottom" }  ]
+        self.ignore_first=not side[0]['is_selected']
+
+        content = ListPopup()
+        args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 50}
+        list_adapter = ListAdapter(data=side, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_view = ListView(adapter=list_adapter)
+
+        content.ids.profile_list.add_widget(list_view)
+
+        list_view.adapter.bind(on_selection_change=self.selected_side)
+
+        self._popup = Popup(title="Select Soldering Side", content=content, size_hint=(0.5, 0.6))
+        self._popup.open()
+
+    def selected_side(self, adapter):
+        if self.ignore_first:
+            self.ignore_first=False
+            return
+        self.project_data['SolderSide']=adapter.selection[0].text
+        self.dismiss_popup()
+        print(self.project_data['SolderSide'])
 
     def select_profile(self):
         ### Program menu / Select Soldering Profile
         profile = excellon.convert_to_solderingprofile(self.project_data)
         if len(profile) < 1:
             return
+        self.ignore_first=not profile[0]['is_selected']
         content = ListPopup()
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 50}
         list_adapter = ListAdapter(data=profile, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
@@ -336,33 +418,46 @@ class ListScreen(Screen):
 
         list_view.adapter.bind(on_selection_change=self.selected_profile)
 
-        self._popup = Popup(title="Select soldering profile", content=content, size_hint=(0.5, 0.6))
+        self._popup = Popup(title="Select Soldering Profile", content=content, size_hint=(0.5, 0.6))
         self._popup.open()
 
     def selected_profile(self, adapter):
         ### select profile on soldering profile list
-        self.project_data['SelectedSolderingProfile']=adapter.selection[0].id
+        if self.ignore_first:
+            self.ignore_first=False
+            return
+        num=excellon.get_solderingprofile_index_by_id(self.project_data['SolderingProfile']['SolderingProfile'], adapter.selection[0].text)
+        self.project_data['SelectedSolderingProfile']=num
         self.dismiss_popup()
 
     def select_by_dia(self):
         ### Program Menu / Select soldering pad by diameter
-        if len(self.project_data['NCTool']) < 1:
+        tools=self.project_data['NCTool']
+        if len(tools) < 1:
             return
+        self.ignore_first=not tools[0]['is_selected']
+
         content = ListPopup()
         args_converter = lambda row_index, rec: {'text': rec['text'], 'is_selected': rec['is_selected'], 'size_hint_y': None, 'height': 40}
-        list_adapter = ListAdapter(data=self.project_data['NCTool'], args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
+        list_adapter = ListAdapter(data=tools, args_converter=args_converter, propagate_selection_to_data=True, cls=ListItemButton, selection_mode='single', allow_empty_selection=False)
         list_view = ListView(adapter=list_adapter)
 
         content.ids.profile_list.add_widget(list_view)
         list_view.adapter.bind(on_selection_change=self.selected_tools)
 
-        self._popup = Popup(title="Select soldering pad by tools", content=content, size_hint=(0.5, 0.7))
+        self._popup = Popup(title="Select Soldering Pad by Tools", content=content, size_hint=(0.5, 0.7))
         self._popup.open()
 
     def selected_tools(self, adapter):
         ### select tool on tools' list
+        if self.ignore_first:
+            self.ignore_first=False
+            return
         soldertoolpath=self.project_data['SolderToolpath']
-        excellon.select_by_tool(soldertoolpath, adapter.selection[0].id, self.project_data['SelectedSolderingProfile'])
+        num=int(adapter.selection[0].text.split(":")[0])
+        excellon.select_by_tool(soldertoolpath, num, self.project_data['SelectedSolderingProfile'])
+        # redraw
+        self.ids["img_cad_origin"].redraw_cad_view(self.project_data['SolderToolpath'], self.project_data['SolderSide'])
         self.dismiss_popup()
 
     def select_by_view(self):
@@ -477,11 +572,13 @@ class ListScreen(Screen):
         self._popup.open()
 
     def save_panel_num(self, txt_port):
+        # set num of panels
         num  = int(txt_port)
         excellon.set_num_panel(self.project_data['Panel'], num)
         self.dismiss_popup()
 
     def set_reference_panel(self):
+        #  show dialpad
 
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
         self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
@@ -493,6 +590,9 @@ class ListScreen(Screen):
         if self.printer_connect() is False:
             return
 
+        # set printer to home
+        go_home(self.project_data)
+
         gcode = self.send_gcode_from_template(self.g_home)
         gcode1 = gcoder.LightGCode(gcode)
         self.print.startprint(gcode1)
@@ -501,6 +601,7 @@ class ListScreen(Screen):
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
         self._popup.open()
+
     def control_XYZ(self, axis, value):
         ### click any button on dialpad
         if axis == "X":
@@ -558,16 +659,19 @@ class ListScreen(Screen):
         self._popup = Popup(title="Select Printer port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
+
     def save_printer_port(self, txt_port):
         self.printer_post = txt_port
         self.dismiss_popup()
 
     def set_camera(self):
+        # set camera device
         content = EditPopup(save=self.save_camera_port, cancel=self.dismiss_popup)
         content.ids["text_port"].text = self.cam_port
         self._popup = Popup(title="Select Camera port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
+
     def save_camera_port(self, txt_port):
         self.cam_port = txt_port
         try:
@@ -577,6 +681,7 @@ class ListScreen(Screen):
             print(e," save cam port")
             pass
         self.dismiss_popup()
+
     def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0,0)):
         ### get printer point from nc drill coordinates
         x, y = point
@@ -740,16 +845,19 @@ class ListScreen(Screen):
         #TODO
         #self.printer_disconnect()
         self._popup.dismiss()
+
     def camera_connect(self):
         ### connect camera
         self.capture = VideoCaptureAsync(self.cam_port)
         self.capture.start()
         self.status_cam = "Camera connected"
         self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
+
     def camera_disconnect(self):
         if self.capture is not None:
             self.capture.stop()
             self.capture = None
+
     def printer_connect(self):
         if self.print is None:
             self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
@@ -768,6 +876,7 @@ class ListScreen(Screen):
             self.status_printer = " 3d printer connected"
             self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
             return True
+
     def printer_disconnect(self):
         if self.print is not None:
             self.print.disconnect()
@@ -779,6 +888,7 @@ class ListScreen(Screen):
             self.b_start_soldering = False
             self.b_test_started = False
             self.b_started = False
+
     def send_gcode_from_template(self, template):
         gcode=[]
         for line in StringIO(template):
@@ -800,6 +910,7 @@ class ListScreen(Screen):
             self.print.send(converted_line)
             gcode.append(converted_line)
         return gcode
+
     def show_status(self, dt):
         if  self.ids is not "":
             #self.ids["lbl_cad_cam"].text = " Camera connected"

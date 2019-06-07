@@ -40,7 +40,7 @@
                         with_previous: False
                     ActionGroup:
                         text: 'File'
-                        size_hint_x: 0.15 
+                        size_hint_x: 0.15
                         mode: 'spinner'
                         ActionButton:
                             text: 'New Project'
@@ -59,22 +59,25 @@
                             on_press: root.exit_app()
                     ActionGroup:
                         text: 'Program'
-                        size_hint_x: 0.25 
+                        size_hint_x: 0.25
                         mode: 'normal'
                         ActionButton:
                             text: 'Import NC Drill'
-                            on_press: root.import_nc()
+                            on_press: root.import_file()
                         ActionButton:
-                            text: 'Select Soldering profile'
+                            text: 'Select Soldering Side'
+                            on_press: root.select_side()
+                        ActionButton:
+                            text: 'Select Soldering Profile'
                             on_press: root.select_profile()
                         ActionButton:
-                            text: 'Select soldering pad by diameter'
+                            text: 'Select Soldering Pad by Diameter'
                             on_press: root.select_by_dia()
                         ActionButton:
-                            text: 'Select soldering pad in view'
+                            text: 'Select Soldering Pad in View'
                             on_press: root.select_by_view()
                         ActionButton:
-                            text: 'Deselect soldering pad in view'
+                            text: 'Deselect Soldering Pad in View'
                             on_press: root.deselect_by_view()
                         ActionButton:
                             text: 'Set Reference Point 1'
@@ -83,11 +86,11 @@
                             text: 'Set Reference Point 2'
                             on_press: root.set_reference2()
                         ActionButton:
-                            text: 'Optimize Soldering Point order'
+                            text: 'Optimize Soldering Point Order'
                             on_press: root.optmize_nc()
                     ActionGroup:
                         text: 'Panel'
-                        size_hint_x: 0.25 
+                        size_hint_x: 0.25
                         mode: 'spinner'
                         ActionButton:
                             text: 'Set Number of Panel'
@@ -97,7 +100,7 @@
                             on_press: root.set_reference_panel()
                     ActionGroup:
                         text: 'Connect'
-                        size_hint_x: 0.15 
+                        size_hint_x: 0.15
                         mode: 'spinner'
                         ActionButton:
                             text: 'Set Printer Port'
@@ -105,8 +108,8 @@
                         ActionButton:
                             text: 'Set Camera Port'
                             on_press: root.set_camera()
-        
-        ####### toolbar part ######        
+
+        ####### toolbar part ######
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y:0.03
@@ -114,7 +117,7 @@
                 text:''
                 size_hint_x: 0.1
                 font_size:16
-                
+
             Button:
                 id: btn_start
                 text:'start soldering'
@@ -140,7 +143,7 @@
             Label:
                 text:''
                 size_hint_x: 0.1
-                font_size:16  
+                font_size:16
             Button:
                 id: btn_test
                 text:'test soldering'
@@ -153,9 +156,9 @@
             Label:
                 text:''
                 size_hint_x: 0.1
-                font_size:16                 
-            
-        ####### body part ##########       
+                font_size:16
+
+        ####### body part ##########
         BoxLayout:
             orientation: 'vertical'
             size_hint_y:0.72
@@ -179,7 +182,7 @@
                             padding: 5
                             Image:
                                 id: img_cad_selected
-                                
+
                 TabbedPanelItem:
                     text: ' Camera '
                     BoxLayout:
@@ -193,11 +196,11 @@
                                 size_hint: 1, 1
                         BoxLayout:
                             orientation: 'horizontal'
-                            size_hint_x: 0.3        
-                        
+                            size_hint_x: 0.3
+
 
         ####### status part ######
-        # footer part    
+        # footer part
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y:0.05
@@ -207,13 +210,13 @@
                 text:''
                 size_hint: 0.5, 1
                 font_size:20
-                
+
             Label:
                 id: lbl_solder_status
                 text:''
                 size_hint: 0.5, 1
                 font_size:20
-                
+
 ################################
 <LoadDialog>:
     BoxLayout:
@@ -222,7 +225,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
-            filters: ['*.txt','*.TXT', '*.json']
+            filters: ['*.json']
         BoxLayout:
             size_hint_y: None
             height: 30
@@ -242,7 +245,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
-            filters: ['*.txt','*.TXT', '*.json']
+            filters: ['*.json']
             on_selection: text_input.text = self.selection and self.selection[0] or ''
 
         TextInput:
@@ -261,6 +264,26 @@
             Button:
                 text: "Save"
                 on_release: root.save(filechooser.path, text_input.text)
+
+<ImportDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            filters: ['*.txt','*.TXT']
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
 ########## select soldering profile ######
 <ListPopup>
     BoxLayout:
@@ -281,7 +304,7 @@
                 multiline: False
         BoxLayout:
             size_hint_y: 0.5
-            
+
             Button:
                 text: "Cancel"
                 size_hint_y: None
@@ -316,7 +339,7 @@
                     text: "OK"
                     on_release: root.dismiss()
 ####################
-    
+
 <ControlPopup>
     BoxLayout:
         orientation: 'horizontal'
@@ -497,7 +520,7 @@
                         BoxLayout:
                             size_hint_y: 0.5
                             Label:
-                                text: '0.1'    
+                                text: '0.1'
                 Label:
                     text: ''
                     size_hint_x: 0.05
@@ -653,7 +676,7 @@
                             size_hint_y: 0.5
                             Label:
                                 text: '10'
-                           
+
                 Label:
                     text: ''
                     size_hint_x: 0.05
@@ -846,8 +869,8 @@
                                 text: '10'
                 Label:
                     text: ''
-                    size_hint_x: 0.05    
-                            
+                    size_hint_x: 0.05
+
         BoxLayout:
             size_hint_x: 0.35
             orientation: 'vertical'
@@ -941,4 +964,3 @@
                     size_hint_y: None
                     height: 40
                     on_release: root.saveXYZ(cur_panel.text, cur_X.text, cur_Y.text, cur_Z.text, 2)
-        
