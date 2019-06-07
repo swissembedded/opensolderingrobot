@@ -16,10 +16,7 @@
 		if not installed cario, should install cario
 
 		sudo apt-get install libcairo2-dev
-		#conda install -c conda-forge cairocffi
 		pip install cairocffi==0.6
-	. install tsp-solver
-		pip install tsp_solver
 	. intall opencv
 		pip install opencv-contrib-python
 	. install printrun

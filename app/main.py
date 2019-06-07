@@ -47,7 +47,7 @@ import gerber
 from gerber.render.cairo_backend import GerberCairoContext
 from operator import sub
 from gerber.excellon import DrillHit
-from tsp_solver.greedy import solve_tsp
+
 # for camera view
 import cv2
 from videocaptureasync import VideoCaptureAsync
@@ -94,7 +94,7 @@ def assure_path_exists(path):
 assure_path_exists("temp/")
 class TouchImage(Image):
     def set_cad_view(self, prjdata):
-        # make it globally available
+        ### make project data available in class
         self.project_data=prjdata
 
     def redraw_cad_view(self):
@@ -148,8 +148,6 @@ class TouchImage(Image):
 
     def on_touch_down(self, touch):
         ### mouse down event
-        print(touch.pos, self.pos, self.size)
-        #return super(TouchImage, self).on_touch_down(touch)
         soldertoolpath=self.project_data['SolderToolpath']
         solderside=self.project_data['SolderSide']
         selectedsolderingprofile=self.project_data['SelectedSolderingProfile']
@@ -178,12 +176,13 @@ class TouchImage(Image):
             touchxp=touchxp-posxp
             touchyp=touchyp-posyp
         else:
-            touchxp=widthp-touchxp-posxp
+            touchxp=widthp-(touchxp-posxp)
             touchyp=touchyp-posyp
 
         xnc, ync = excellon.get_nc_tool_position(soldertoolpath,touchxp,touchyp,width*scale,height*scale)
-        #print("click",ymin,ymin, touchxp, touchyp, xnc, ync)
         # out of image
+        print(touch.pos, self.pos, self.size, posxp, posyp, xnc, ync, xmin, xmax, ymin, ymax)
+
         if xnc < xmin or xnc > xmax or ync < ymin or ync > ymax:
             return
         # perform action on mode
@@ -230,15 +229,13 @@ class ListScreen(Screen):
     def __init__(self, **kwargs):
         super(ListScreen, self).__init__(**kwargs)
         # run clock
-        # TODO
         Clock.schedule_interval(self.init_gui, 0.2)
-        #Clock.schedule_interval(self.show_status, 0.03)
+        Clock.schedule_interval(self.show_status, 0.03)
 
     def init_gui(self, dt):
         self.new_file()
         Clock.unschedule(self.init_gui)
-        #TODO
-        #Clock.schedule_interval(self.cam_update, 0.03)
+        Clock.schedule_interval(self.cam_update, 0.03)
 
     def cam_update(self, dt):
         try:
@@ -271,10 +268,14 @@ class ListScreen(Screen):
         self.project_data['CADMode']="None"
         self.ids["img_cad_origin"].set_cad_view(self.project_data)
         self.ids["img_cad_origin"].redraw_cad_view()
+        self.capture = None
+        self.print = None
 
         try:
             self.camera_disconnect()
             self.camera_connect()
+            self.printer_disconnect()
+            self.printer_connect()
         except Exception as e:
             print(e, "cam start")
             pass
@@ -561,27 +562,33 @@ class ListScreen(Screen):
     def set_printer(self):
         ### Connect Menu /  Connect Printer
         content = EditPopup(save=self.save_printer_port, cancel=self.dismiss_popup)
-        content.ids["text_port"].text = self.printer_port
+        content.ids["text_port"].text = self.project_data['Setup']['RobotPort']
         self._popup = Popup(title="Select Printer port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
         self.project_data['CADMode']="None"
 
     def save_printer_port(self, txt_port):
-        self.printer_post = txt_port
+        self.project_data['Setup']['RobotPort'] = txt_port
+        try:
+            self.print_disconnect()
+            self.print_connect()
+        except  Exception as e:
+            print(e," save robot port")
+            pass
         self.dismiss_popup()
 
     def set_camera(self):
         # set camera device
         content = EditPopup(save=self.save_camera_port, cancel=self.dismiss_popup)
-        content.ids["text_port"].text = self.cam_port
+        content.ids["text_port"].text = self.project_data['Setup']['CameraPort']
         self._popup = Popup(title="Select Camera port", content=content,
                             size_hint=(0.5, 0.4))
         self._popup.open()
         self.project_data['CADMode']="None"
 
     def save_camera_port(self, txt_port):
-        self.cam_port = txt_port
+        self.project_data['Setup']['CameraPort'] = txt_port
         try:
             self.camera_disconnect()
             self.camera_connect()
@@ -590,30 +597,6 @@ class ListScreen(Screen):
             pass
         self.dismiss_popup()
 
-    def get_printer_point(self, point, radians, scale, origin=(0, 0), translation=(0,0)):
-        ### get printer point from nc drill coordinates
-        x, y = point
-        ox, oy = origin
-        tx, ty = translation
-
-        qx = tx + (math.cos(radians) * (x - ox) + math.sin(radians) * (y - oy))*scale
-        qy = ty + (-math.sin(radians) * (x - ox) + math.cos(radians) * (y - oy))*scale
-
-        return qx, qy
-    def get_soldering_setting(self):
-        ### get selected soldering profile
-
-        self.SolderLength = self.sel_sol_profile_settings["SolderLength"]
-        self.Melting = self.sel_sol_profile_settings["Melting"]
-        self.Heatup = self.sel_sol_profile_settings["Heatup"]
-
-        self.SolderOffsetX = self.sel_sol_profile_settings["SolderOffsetX"]
-        self.SolderOffsetY = self.sel_sol_profile_settings["SolderOffsetY"]
-        self.SolderOffsetZ= self.sel_sol_profile_settings["SolderOffsetZ"]
-
-        self.ApproxOffsetX = self.sel_sol_profile_settings["ApproxOffsetX"]
-        self.ApproxOffsetY = self.sel_sol_profile_settings["ApproxOffsetY"]
-        self.ApproxOffsetZ = self.sel_sol_profile_settings["ApproxOffsetZ"]
     def start_soldering(self):
         if self.ids["btn_start"].text == "start soldering" and self.b_test_started is False:
             if self.reference_1 != "" and self.reference_2 != "":
@@ -652,6 +635,7 @@ class ListScreen(Screen):
                     self.b_start_soldering = True
                     self.ids["btn_start"].text = "resume soldering"
                     #If you need to interact with the printer:
+
     def panel_soldering(self, template):
         ######## for each panel soldering ; template == self.g_solder ==> soldering, template ==self.g_test ==> testing
         gcode = []
@@ -756,10 +740,8 @@ class ListScreen(Screen):
 
     def camera_connect(self):
         ### connect camera
-        self.capture = VideoCaptureAsync(self.cam_port)
+        self.capture = VideoCaptureAsync(self.project_data['Setup']['CameraPort'])
         self.capture.start()
-        self.status_cam = "Camera connected"
-        self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
 
     def camera_disconnect(self):
         if self.capture is not None:
@@ -768,58 +750,30 @@ class ListScreen(Screen):
 
     def printer_connect(self):
         if self.print is None:
-            self.print = printcore(self.printer_port, 115200) # or p.printcore('COM3',115200) on Windows
-            waiting_counter = 1
-            ### not printer online, wait , after 1 sec, connect failed
-            while not self.print.online:
-                self.status_printer = " 3d printer connecting..."
-                self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                time.sleep(0.1)
-                waiting_counter +=1
-                if waiting_counter > 10:
-                    self.print = None
-                    self.status_printer = " 3d printer not connected"
-                    self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-                    return False
-            self.status_printer = " 3d printer connected"
-            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-            return True
+            self.print = printcore(self.project_data['Setup']['RobotPort'], 115200)
+        return self.print.online
 
     def printer_disconnect(self):
         if self.print is not None:
             self.print.disconnect()
             self.print = None
-            self.status_printer = " 3d printer disconnected"
-            self.ids["lbl_cad_cam"].text = self.status_printer + "  " + self.status_cam
-            self.ids["btn_start"].text = "start soldering"
-            self.ids["btn_test"].text = "test soldering"
-            self.b_start_soldering = False
-            self.b_test_started = False
-            self.b_started = False
-
-    def send_gcode_from_template(self, template):
-        gcode=[]
-        for line in StringIO(template):
-            converted_line = line.strip().replace("%TravelZ", str(self.TravelZ))
-            converted_line = converted_line.replace("%ApproxX", str(self.ApproxX))
-            converted_line = converted_line.replace("%ApproxY", str(self.ApproxY))
-            converted_line = converted_line.replace("%ApproxZ", str(self.ApproxZ))
-            converted_line = converted_line.replace("%SolderX", str(self.SolderX))
-            converted_line = converted_line.replace("%SolderY", str(self.SolderY))
-            converted_line = converted_line.replace("%SolderZ", str(self.SolderZ))
-            converted_line = converted_line.replace("%Heatup", str(self.Heatup))
-            converted_line = converted_line.replace("%Melting", str(self.Melting))
-            converted_line = converted_line.replace("%TravelX", str(self.TravelX))
-            converted_line = converted_line.replace("%TravelY", str(self.TravelY))
-            converted_line = converted_line.replace("%CoordX", str(self.CoordX))
-            converted_line = converted_line.replace("%CoordY", str(self.CoordY))
-            converted_line = converted_line.replace("%CoordZ", str(self.CoordZ))
-
-            self.print.send(converted_line)
-            gcode.append(converted_line)
-        return gcode
 
     def show_status(self, dt):
+        self.ids["lbl_layer_status"].text="Layer: "+self.project_data['SolderSide']
+        self.ids["lbl_cad_status"].text="CADMode: "+self.project_data['CADMode']
+
+        profile=excellon.get_list_soldering_profile(self.project_data['SolderingProfile'])
+        self.ids["lbl_profile_status"].text="Profile: "+profile[self.project_data['SelectedSolderingProfile']]
+        if hasattr(self,'capture') and self.capture is not None:
+            self.ids["lbl_cam_status"].text="Camera: Connected"
+        else:
+            self.ids["lbl_cam_status"].text="Camera: Not Found"
+        if hasattr(self,'print') and self.print is not None:
+            self.ids["lbl_printer_status"].text="Robot: Connected"
+        else:
+            self.ids["lbl_printer_status"].text="Robot: Not Found"
+
+        return
         if  self.ids is not "":
             #self.ids["lbl_cad_cam"].text = " Camera connected"
             if self.print is not None and (self.b_started or self.b_test_started):
