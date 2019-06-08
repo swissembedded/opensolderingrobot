@@ -214,8 +214,10 @@ class EditPopup(BoxLayout):
     cancel = ObjectProperty(None)
 class ControlPopup(BoxLayout):
     controlXYZ = ObjectProperty(None)
-    goXYZ = ObjectProperty(None)
-    saveXYZ = ObjectProperty(None)
+    get_panel_ref1 = ObjectProperty(None)
+    set_panel_ref1 = ObjectProperty(None)
+    get_panel_ref2 = ObjectProperty(None)
+    set_panel_ref2 = ObjectProperty(None)
     cancel = ObjectProperty(None)
 class ErrorDialog(Popup):
     def __init__(self, obj, **kwargs):
@@ -506,9 +508,9 @@ class ListScreen(Screen):
     def control_XYZ(self, axis, value):
         ### click any button on dialpad, calculate new position
         index=int(self.content.ids["cur_panel"].text)
-        x=int(self.content.ids["cur_X"].text)
-        y=int(self.content.ids["cur_Y"].text)
-        z=int(self.content.ids["cur_Z"].text)
+        x=float(self.content.ids["cur_X"].text)
+        y=float(self.content.ids["cur_Y"].text)
+        z=float(self.content.ids["cur_Z"].text)
 
         if axis == "X":
             x += float(value)
@@ -540,29 +542,29 @@ class ListScreen(Screen):
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
         self.queue_printer_command(gcode)
 
-    def set_panel_ref1(self, cur_panel, cur_x, cur_y, cur_z):
+    def set_panel_ref1(self):
         ### click set1 button on dialpad
         index=int(self.content.ids["cur_panel"].text)
         index=min(index,excellon.get_num_panel(self.project_data['Panel']))
         index=max(index,1)
 
-        x=int(self.content.ids["cur_X"].text)
-        y=int(self.content.ids["cur_Y"].text)
-        z=int(self.content.ids["cur_Z"].text)
-        excellon.setPanelRef1(self.project_data['Panel'], index, x, y, z)
+        x=float(self.content.ids["cur_X"].text)
+        y=float(self.content.ids["cur_Y"].text)
+        z=float(self.content.ids["cur_Z"].text)
+        excellon.set_panel_reference_1(self.project_data['Panel'], index-1, x, y, z)
 
     def set_panel_ref2(self):
         ### click set2 button on dialpad
         index=int(self.content.ids["cur_panel"].text)
-        x=int(self.content.ids["cur_X"].text)
-        y=int(self.content.ids["cur_Y"].text)
-        z=int(self.content.ids["cur_Z"].text)
-        excellon.setPanelRef2(self.project_data['Panel'], index, x, y, z)
+        x=float(self.content.ids["cur_X"].text)
+        y=float(self.content.ids["cur_Y"].text)
+        z=float(self.content.ids["cur_Z"].text)
+        excellon.set_panel_reference_2(self.project_data['Panel'], index-1, x, y, z)
 
     def get_panel_ref1(self):
         ### click on get1 button on dialpad
         index=int(self.content.ids["cur_panel"].text)
-        x,y,z = excellon.getPanelRef1(self.project_data['Panel'], index)
+        x,y,z = excellon.get_panel_reference_1(self.project_data['Panel'], index-1)
         if x==-1 and y==-1 and z==-1:
             x=self.project_data['Setup']['TravelX']
             y=self.project_data['Setup']['TravelY']
@@ -577,7 +579,7 @@ class ListScreen(Screen):
     def get_panel_ref2(self):
         ### click on get2 button on dialpad
         index=int(self.content.ids["cur_panel"].text)
-        x,y,z = excellon.getPanelRef2(self.project_data['Panel'], index)
+        x,y,z = excellon.get_panel_reference_2(self.project_data['Panel'], index-1)
         if x==-1 and y==-1 and z==-1:
             x=self.project_data['Setup']['TravelX']
             y=self.project_data['Setup']['TravelY']
@@ -588,6 +590,26 @@ class ListScreen(Screen):
         # go xyz printer
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
         self.queue_printer_command(gcode)
+
+    def start_soldering(self):
+        ### toolbar start soldering button
+        if self.ids["btn_start"].text == "Start Soldering":
+            self.ids["btn_start"].text = "Pause Soldering"
+            gcode=robotcontrol.panel_soldering(self.project_data, [0], False)
+            self.queue_printer_command(gcode)
+        elif self.ids["btn_start"].text == "Pause Soldering":
+            self.ids["btn_start"].text = "Resume Soldering"
+        elif self.ids["btn_start"].text == "Resume Soldering":
+            self.ids["btn_start"].text = "Pause Soldering"
+
+    def test_soldering(self):
+        ### toolbar test soldering button
+        gcode=robotcontrol.panel_soldering(self.project_data, [0], True)
+        self.queue_printer_command(gcode)
+
+    def stop_soldering(self):
+        ### toolbar stop soldering button
+        return
 
     #### Connect menu
     def set_printer(self):
@@ -627,142 +649,6 @@ class ListScreen(Screen):
             print(e,"exception save cam port")
             pass
         self.dismiss_popup()
-
-    def start_soldering(self):
-        if self.ids["btn_start"].text == "start soldering" and self.b_test_started is False:
-            if self.reference_1 != "" and self.reference_2 != "":
-                if self.printer_connect() is False:
-                    return
-
-                gcode = self.send_gcode_from_template(self.g_header)
-                # or pass in your own array of gcode lines instead of reading from a file
-                gcode1 = gcoder.LightGCode(gcode)
-                self.print.startprint(gcode1) # this will start a print
-                self.b_started = True
-                self.ids["btn_start"].text = "pause soldering"
-                self.get_soldering_setting()
-                gcode.extend(self.panel_soldering(self.g_solder))
-                gcode.extend(self.send_gcode_from_template(self.g_footer))
-
-                with open("./temp/gcode.txt", 'w') as wf:
-                    print(gcode)
-                    for temp in gcode:
-                        wf.write(temp+"\n")
-                wf.close()
-                #print(gcode)
-
-        else:
-            if self.b_start_soldering and self.b_started:
-
-                if self.print is not None:
-                    self.b_start_soldering = False
-                    self.ids["btn_start"].text = "pause soldering"
-                    self.print.resume()
-            elif self.b_start_soldering == False and self.b_started:
-
-                if self.print is not None:
-                    self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
-                    self.print.pause() # use these to pause/resume the current print
-                    self.b_start_soldering = True
-                    self.ids["btn_start"].text = "resume soldering"
-                    #If you need to interact with the printer:
-
-    def panel_soldering(self, template):
-        ######## for each panel soldering ; template == self.g_solder ==> soldering, template ==self.g_test ==> testing
-        gcode = []
-        for k in range(len(self.reference_printer["1"])):
-            if self.reference_printer["1"][k][0] == 0.0 and self.reference_printer["1"][k][1] == 0.0:
-                continue
-            if self.reference_printer["2"][k][0] == 0.0 and self.reference_printer["2"][k][1] == 0.0:
-                continue
-            # nc drill reference point
-            xp1_0, yp1_0 = self.reference_1[0], self.reference_1[1]
-            xp2_0, yp2_0 = self.reference_2[0], self.reference_2[1]
-
-            backside=1 # set backside to -1 on bottom layer
-            xp1=xp1_0*backside
-            yp1=yp1_0
-
-            # 3d printer reference point 1 for k' th panel
-            x1, y1 = self.reference_printer["1"][k][0], self.reference_printer["1"][k][1]
-            xp2=xp2_0*backside
-            yp2=yp2_0
-
-            # 3d printer reference point 2 for k' th panel
-            x2, y2 = self.reference_printer["2"][k][0], self.reference_printer["2"][k][1]
-
-            v1=array([x1,y1])
-            vp1=array([xp1,yp1])
-            v2=array([x2,y2])
-            vp2=array([xp2,yp2])
-            dv=subtract(v2,v1)
-            dvp=subtract(vp2,vp1)
-            vlen=norm(dv)
-            vplen=norm(dvp)
-            c = dot(dv,dvp)/(vlen*vplen)
-            radians = arccos(c)
-            scale = vlen / vplen
-
-            data = gerber.read(self.sel_tool_path)
-            data.to_metric()
-            gcode.append("; panel " + str(k+1) + " start")
-            for hit in data.hits:
-                x, y = hit.position
-                v2_1 = array([x, y])
-                x0, y0 = array(self.get_printer_point(v2_1, -radians, scale, vp1, v1))
-                # 3d printer points based on (left, bottom) == (0, 0)
-                PosX, PosY = round((x0), 5), round((y0), 5)
-                PosZ = 10 # reference point 1 and 2, z component average see above ????where is this value defined?
-
-                self.ApproxX = round((PosX-self.ApproxOffsetX),5)
-                self.ApproxY = round((PosY-self.ApproxOffsetY),5)
-                self.ApproxZ = round((PosZ-self.ApproxOffsetZ),5)
-                self.SolderX = round((PosX-self.SolderOffsetX),5)
-                self.SolderY = round((PosY-self.SolderOffsetY),5)
-                self.SolderZ = round((PosZ-self.SolderOffsetZ),5)
-
-                #print(PosX, PosY, PosZ, SolderX, SolderY, SolderZ)
-                gcode.extend(self.send_gcode_from_template(template))
-        return gcode
-    def stop_soldering(self):
-        self.printer_disconnect()
-
-    def test_soldering(self):
-        if self.ids["btn_test"].text == "test soldering" and self.b_started is False:
-            if self.reference_1 != "" and self.reference_2 != "":
-                if self.printer_connect() is False:
-                    return
-
-                gcode = self.send_gcode_from_template(self.g_header)
-                # or pass in your own array of gcode lines instead of reading from a file
-                gcode1 = gcoder.LightGCode(gcode)
-                self.print.startprint(gcode1) # this will start a print
-                self.b_test_started = True
-                self.ids["btn_test"].text = "pause soldering"
-                self.get_soldering_setting()
-                gcode.extend(self.panel_soldering(self.g_test))
-                gcode.extend(self.send_gcode_from_template(self.g_footer))
-
-                with open("./temp/gcode.txt", 'w') as wf:
-                    print(gcode)
-                    for temp in gcode:
-                        wf.write(temp+"\n")
-                wf.close()
-                #print(gcode)
-
-        else:
-            if self.b_start_soldering and self.b_test_started:
-                if self.print is not None:
-                    self.b_start_soldering = False
-                    self.ids["btn_test"].text = "pause soldering"
-                    self.print.resume()
-            elif self.b_start_soldering == False and self.b_test_started:
-                if self.print is not None:
-                    self.b_start_soldering = True
-                    self.ids["btn_test"].text = "resume soldering"
-                    #If you need to interact with the printer:
-                    self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
-                    self.print.pause() # use these to pause/resume the current print
 
     def queue_printer_command(self, gcode):
         ga=robotcontrol.make_array(gcode)
@@ -809,21 +695,6 @@ class ListScreen(Screen):
             self.ids["lbl_printer_status"].text="Robot: Not Found"
 
         return
-
-        # TODO remove
-        if  self.ids is not "":
-            #self.ids["lbl_cad_cam"].text = " Camera connected"
-            if self.print is not None and (self.b_started or self.b_test_started):
-                try:
-                    (layer, line) = self.print.mainqueue.idxs(self.print.queueindex)
-                    gline = self.print.mainqueue.all_layers[layer][line]
-                    #print(gline.raw)
-                    self.ids["lbl_solder_status"].text = str(gline.raw)[0:70]#" soldering 1/N pads on panel 2/M"
-                    if str(gline.raw) == "G1 X0 Y0 F600 ; end":
-                        self.print.disconnect()
-                except Exception as e:
-                    self.print.disconnect()
-
 
 ### Application
 class MyApp(App):
