@@ -614,7 +614,7 @@
                                 text: '0.1'
                 Button:
                     size_hint_x: 0.1
-                    on_press: root.controlXYZ('XY', 0)
+                    on_press: root.controlXYZ('HomeXY', 0)
                     BoxLayout:
                         pos: self.parent.pos
                         size: self.parent.size
@@ -697,7 +697,7 @@
                     size_hint_x: 0.05
                 Button:
                     size_hint_x: 0.1
-                    on_press: root.controlXYZ('Z', 0)
+                    on_press: root.controlXYZ('HomeZ', 0)
                     BoxLayout:
                         pos: self.parent.pos
                         size: self.parent.size
@@ -953,14 +953,15 @@
                     size_hint_y: None
                     height: 40
                 Button:
-                    text: "GO!"
+                    text: "Get 1"
                     size_hint_y: None
                     height: 40
-                    on_release: root.goXYZ(cur_X.text, cur_Y.text, cur_Z.text)
+                    on_release: root.get_panel_ref1()
                 Label:
-                    text: ""
+                    text: "Get 2"
                     size_hint_y: None
                     height: 40
+                    on_release: root.get_panel_ref2()
             BoxLayout:
                 size_hint_y: 0.2
                 orientation: 'horizontal'
@@ -973,9 +974,9 @@
                     text: "Set 1"
                     size_hint_y: None
                     height: 40
-                    on_release: root.saveXYZ(cur_panel.text, cur_X.text, cur_Y.text, cur_Z.text, 1)
+                    on_release: root.set_panel_ref1()
                 Button:
                     text: "Set 2"
                     size_hint_y: None
                     height: 40
-                    on_release: root.saveXYZ(cur_panel.text, cur_X.text, cur_Y.text, cur_Z.text, 2)
+                    on_release: root.set_panel_ref2()

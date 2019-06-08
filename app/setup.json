@@ -3,5 +3,12 @@
  "CameraPort":"0",
  "TravelX": 0,
  "TravelY": 0,
- "TravelZ": 50
+ "TravelZ": 50,
+ "MinX": 0.0,
+ "MaxX": 220.0,
+ "MinY": 0.0,
+ "MaxY": 210.0,
+ "MinZ": 0.0,
+ "MaxZ": 200.0,
+ "MaxPanel" : 100
 }

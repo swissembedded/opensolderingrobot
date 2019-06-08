@@ -49,12 +49,12 @@ def init_project_data():
             "GGetCoords": helper_read_txt("printergetcoords"),
             "GSpool" : "", # generated g-code for the panel soldering, created on print
             # panel definition
-            "Panel": [
-                        # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
-                        #{"RefX1" : 0, "RefY1":0, "RefZ1":"0", # x1/y1/z1 is first reference point
-                        # "RefX2":1, "RefY2":2, "RefZ2":0 # x2/y2/z2 is second reference point
-                        #}
-                        ],
+            "Panel": [  # array with panels, coordinates in 3d printer bed coordinates, teached in with panel menu
+                        {
+                            "RefX1" : -1, "RefY1" : -1, "RefZ1" : -1, # x1/y1/z1 is first reference point
+                            "RefX2" : -1, "RefY2" : -1, "RefZ2" : -1 # x2/y2/z2 is second reference point
+                         }
+                     ],
             # soldering toolpath
             "SolderToolpath": [ # array with soldering points, referencing nc drill tool and position in list, selected soldering profile, attributes if reference point
                         # sort this array with PanelRef1 first, following closest neigbourst on optimize soldering points, do not sort imported nc hits and nc tools

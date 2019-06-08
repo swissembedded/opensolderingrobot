@@ -1,4 +1,4 @@
-# Gerber / Excellon handling
+# Main routine
 # This file is part of the opensoldering project distribution (https://github.com/swissembedded/opensolderingrobot.git).
 # Copyright (c) 2019 by Susanna
 # Copyright (c) 2019 by Daniel Haensse
@@ -479,6 +479,8 @@ class ListScreen(Screen):
     def save_panel_num(self, txt_port):
         # set num of panels
         num  = int(txt_port)
+        num = max(1, num)
+        num = min(self.project_data['Setup']['MaxPanel'], num)
         excellon.set_num_panel(self.project_data['Panel'], num)
         self.dismiss_popup()
 
@@ -486,11 +488,11 @@ class ListScreen(Screen):
         #  show dialpad
         print("ref")
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
-        self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
+        self.content = ControlPopup(controlXYZ=self.control_XYZ, set_panel_ref1=self.set_panel_ref1, set_panel_ref2=self.set_panel_ref2, get_panel_ref1=self.get_panel_ref1, get_panel_ref2=self.get_panel_ref2, cancel=self.dismiss_popup)
         self.content.ids["cur_X"].text = str(self.project_data['Setup']['TravelX'])
         self.content.ids["cur_Y"].text = str(self.project_data['Setup']['TravelY'])
         self.content.ids["cur_Z"].text = str(self.project_data['Setup']['TravelZ'])
-        self.content.ids["cur_panel"].text = str(excellon.get_num_panel(self.project_data['Panel']))
+        self.content.ids["cur_panel"].text = "1"
         self._popup = Popup(title="Set reference point", content=self.content,
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
@@ -502,53 +504,90 @@ class ListScreen(Screen):
         self.queue_printer_command(gcode)
 
     def control_XYZ(self, axis, value):
-        ### click any button on dialpad
+        ### click any button on dialpad, calculate new position
+        index=int(self.content.ids["cur_panel"].text)
+        x=int(self.content.ids["cur_X"].text)
+        y=int(self.content.ids["cur_Y"].text)
+        z=int(self.content.ids["cur_Z"].text)
+
         if axis == "X":
-            self.CoordX += float(value)
+            x += float(value)
         elif axis == "Y":
-            self.CoordY += float(value)
+            y += float(value)
         elif axis == "Z":
-            if value == 0:
-                self.CoordZ = self.TravelZ
-            else:
-                self.CoordZ += float(value)
-        else:
-            self.CoordX = self.TravelX
-            self.CoordY = self.TravelY
+            z += float(value)
+        elif axis == "HomeXY":
+            x=self.project_data['Setup']['TravelX']
+            y=self.project_data['Setup']['TravelY']
+        elif axis == "HomeZ":
+            z=self.project_data['Setup']['TravelZ']
 
-        self.CoordX = round(self.CoordX, 5)
-        self.CoordY = round(self.CoordY, 5)
-        self.CoordZ = round(self.CoordZ, 5)
+        index = max(1, index)
+        index = min(self.project_data['Setup']['MaxPanel'], index)
+        x=max(self.project_data['Setup']['MinX'],x)
+        x=min(self.project_data['Setup']['MaxX'],x)
+        y=max(self.project_data['Setup']['MinY'],y)
+        y=min(self.project_data['Setup']['MaxY'],y)
+        z=max(self.project_data['Setup']['MinZ'],z)
+        z=min(self.project_data['Setup']['MaxZ'],z)
 
-        self.content.ids["cur_X"].text = str(self.CoordX)
-        self.content.ids["cur_Y"].text = str(self.CoordY)
-        self.content.ids["cur_Z"].text = str(self.CoordZ)
-        #### go to printer point (gcode sent)
-        temp_gcode = self.send_gcode_from_template(self.g_go)
-        print("#### control dialpad ===>", temp_gcode)
+        self.content.ids["cur_panel"].text = str(index)
+        self.content.ids["cur_X"].text = str(x)
+        self.content.ids["cur_Y"].text = str(y)
+        self.content.ids["cur_Z"].text = str(z)
 
-    def go_XYZ(self, next_x, next_y, next_z):
-        ### click go button on dialpad
-        self.CoordX = round(float(next_x), 5)
-        self.CoordY = round(float(next_y), 5)
-        self.CoordZ = round(float(next_z), 5)
-        #### go to printer point (gcode sent)
-        temp_gcode = self.send_gcode_from_template(self.g_go)
-        print("#### control dialpad go! ===>", temp_gcode)
+        # go xyz printer
+        gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
+        self.queue_printer_command(gcode)
 
-    def save_XYZ(self, cur_panel, cur_x, cur_y, cur_z, refer):
-        ### click Set 1 and Set 2 button refer = 1 ==> Set 1, refer = 2 ==> Set 2
-        try:
-            if int(cur_panel) <= self.panel_num and int(cur_panel)>=1:
-                self.cur_panel_num = int(cur_panel)
-                if refer == 1:
-                    self.reference_printer["1"][int(cur_panel)-1] = (float(cur_x), float(cur_y), float(cur_z))
-                else:
-                    self.reference_printer["2"][int(cur_panel)-1] = (float(cur_x), float(cur_y), float(cur_z))
-            else:
-                print("please enter 1~" + str(self.panel_num))
-        except:
-            print("please enter correct current panel")
+    def set_panel_ref1(self, cur_panel, cur_x, cur_y, cur_z):
+        ### click set1 button on dialpad
+        index=int(self.content.ids["cur_panel"].text)
+        index=min(index,excellon.get_num_panel(self.project_data['Panel']))
+        index=max(index,1)
+
+        x=int(self.content.ids["cur_X"].text)
+        y=int(self.content.ids["cur_Y"].text)
+        z=int(self.content.ids["cur_Z"].text)
+        excellon.setPanelRef1(self.project_data['Panel'], index, x, y, z)
+
+    def set_panel_ref2(self):
+        ### click set2 button on dialpad
+        index=int(self.content.ids["cur_panel"].text)
+        x=int(self.content.ids["cur_X"].text)
+        y=int(self.content.ids["cur_Y"].text)
+        z=int(self.content.ids["cur_Z"].text)
+        excellon.setPanelRef2(self.project_data['Panel'], index, x, y, z)
+
+    def get_panel_ref1(self):
+        ### click on get1 button on dialpad
+        index=int(self.content.ids["cur_panel"].text)
+        x,y,z = excellon.getPanelRef1(self.project_data['Panel'], index)
+        if x==-1 and y==-1 and z==-1:
+            x=self.project_data['Setup']['TravelX']
+            y=self.project_data['Setup']['TravelY']
+            z=self.project_data['Setup']['TravelZ']
+        self.content.ids["cur_X"].text = str(x)
+        self.content.ids["cur_Y"].text = str(y)
+        self.content.ids["cur_Z"].text = str(z)
+        # go xyz printer
+        gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
+        self.queue_printer_command(gcode)
+
+    def get_panel_ref2(self):
+        ### click on get2 button on dialpad
+        index=int(self.content.ids["cur_panel"].text)
+        x,y,z = excellon.getPanelRef2(self.project_data['Panel'], index)
+        if x==-1 and y==-1 and z==-1:
+            x=self.project_data['Setup']['TravelX']
+            y=self.project_data['Setup']['TravelY']
+            z=self.project_data['Setup']['TravelZ']
+        self.content.ids["cur_X"].text = str(x)
+        self.content.ids["cur_Y"].text = str(y)
+        self.content.ids["cur_Z"].text = str(z)
+        # go xyz printer
+        gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
+        self.queue_printer_command(gcode)
 
     #### Connect menu
     def set_printer(self):
