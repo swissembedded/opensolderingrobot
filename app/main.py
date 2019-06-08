@@ -257,10 +257,6 @@ class ListScreen(Screen):
         ## File menu / New Project
         self.init_project()
 
-
-        # init status bar
-        # TODO
-
     def init_project(self):
         # init data
         self.project_file_path = ""
@@ -270,6 +266,7 @@ class ListScreen(Screen):
         self.ids["img_cad_origin"].redraw_cad_view()
         self.capture = None
         self.print = None
+        self.robot_queue=[]
 
         try:
             self.camera_disconnect()
@@ -295,9 +292,11 @@ class ListScreen(Screen):
             ### if proper project file
             self.project_file_path =  filename[0]
             self.project_data=data.read_project_data(self.project_file_path)
+            self.ids["img_cad_origin"].set_cad_view(self.project_data)
             self.ids["img_cad_origin"].redraw_cad_view()
         except:
             ### if not proper project file
+            print("Problem loading file")
             self.dismiss_popup()
             return
         self.dismiss_popup()
@@ -485,29 +484,22 @@ class ListScreen(Screen):
 
     def set_reference_panel(self):
         #  show dialpad
-
+        print("ref")
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
         self.content = ControlPopup(controlXYZ=self.control_XYZ, goXYZ=self.go_XYZ, saveXYZ=self.save_XYZ, cancel=self.dismiss_popup)
-        self.content.ids["cur_X"].text = str(self.TravelX)
-        self.content.ids["cur_Y"].text = str(self.TravelY)
-        self.content.ids["cur_Z"].text = str(self.TravelZ)
-        self.content.ids["cur_panel"].text = str(self.cur_panel_num)
-
-        if self.printer_connect() is False:
-            return
-
-        # set printer to home
-        go_home(self.project_data)
-
-        gcode = self.send_gcode_from_template(self.g_home)
-        gcode1 = gcoder.LightGCode(gcode)
-        self.print.startprint(gcode1)
-
+        self.content.ids["cur_X"].text = str(self.project_data['Setup']['TravelX'])
+        self.content.ids["cur_Y"].text = str(self.project_data['Setup']['TravelY'])
+        self.content.ids["cur_Z"].text = str(self.project_data['Setup']['TravelZ'])
+        self.content.ids["cur_panel"].text = str(excellon.get_num_panel(self.project_data['Panel']))
         self._popup = Popup(title="Set reference point", content=self.content,
                             size_hint=(0.4, 0.4))
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
         self._popup.open()
         self.project_data['CADMode']="None"
+
+        # home printer
+        gcode=robotcontrol.go_home(self.project_data)
+        self.queue_printer_command(gcode)
 
     def control_XYZ(self, axis, value):
         ### click any button on dialpad
@@ -571,10 +563,10 @@ class ListScreen(Screen):
     def save_printer_port(self, txt_port):
         self.project_data['Setup']['RobotPort'] = txt_port
         try:
-            self.print_disconnect()
-            self.print_connect()
+            self.printer_disconnect()
+            self.printer_connect()
         except  Exception as e:
-            print(e," save robot port")
+            print(e,"exception save robot port")
             pass
         self.dismiss_popup()
 
@@ -593,7 +585,7 @@ class ListScreen(Screen):
             self.camera_disconnect()
             self.camera_connect()
         except  Exception as e:
-            print(e," save cam port")
+            print(e,"exception save cam port")
             pass
         self.dismiss_popup()
 
@@ -733,9 +725,12 @@ class ListScreen(Screen):
                     self.print.send_now("M105") # this will send M105 immediately, ahead of the rest of the print
                     self.print.pause() # use these to pause/resume the current print
 
+    def queue_printer_command(self, gcode):
+        ga=robotcontrol.make_array(gcode)
+        self.robot_queue.append(ga)
+
     def dismiss_popup(self):
-        #TODO
-        #self.printer_disconnect()
+        # TODO add pop too
         self._popup.dismiss()
 
     def camera_connect(self):
@@ -751,6 +746,7 @@ class ListScreen(Screen):
     def printer_connect(self):
         if self.print is None:
             self.print = printcore(self.project_data['Setup']['RobotPort'], 115200)
+            self.robot_queue=[]
         return self.print.online
 
     def printer_disconnect(self):
@@ -768,12 +764,14 @@ class ListScreen(Screen):
             self.ids["lbl_cam_status"].text="Camera: Connected"
         else:
             self.ids["lbl_cam_status"].text="Camera: Not Found"
-        if hasattr(self,'print') and self.print is not None:
+        if hasattr(self,'print') and self.print is not None and self.print.online:
             self.ids["lbl_printer_status"].text="Robot: Connected"
         else:
             self.ids["lbl_printer_status"].text="Robot: Not Found"
 
         return
+
+        # TODO remove
         if  self.ids is not "":
             #self.ids["lbl_cad_cam"].text = " Camera connected"
             if self.print is not None and (self.b_started or self.b_test_started):
