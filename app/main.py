@@ -658,14 +658,18 @@ class ListScreen(Screen):
             self.print.cancelprint()
 
     def queue_printer_command(self, gcode):
-        gcode = gcoder.LightGCode(robotcontrol.make_array(gcode))
+        garray=robotcontrol.make_array(gcode)
+        #print("gcode raw", gcode, garray)
+
+        gcoded = gcoder.LightGCode(garray)
+        #print("gcoded", gcoded)
         if hasattr(self,'print') and self.print is not None:
             if not self.print.online or not self.print.printer:
                 print("Problem with printer", self.print.online, self.print.printer)
             if self.print.printing:
-                self.print.send(gcode)
+                self.print.send(gcoded)
             else:
-                self.print.startprint(gcode)
+                self.print.startprint(gcoded)
         else:
             print("Problem with printer interface")
     #### Connect menu
@@ -744,7 +748,10 @@ class ListScreen(Screen):
             if self.print.printer is None:
                 self.ids["lbl_printer_status"].text="Robot: No 3d printer found"
             elif self.print.printing:
-                self.ids["lbl_printer_status"].text="Robot: Printing "+ str(round(float(self.print.queueindex) / len(self.print.mainqueue)*100,2))+"%"
+                if len(self.print.mainqueue)>0:
+                    self.ids["lbl_printer_status"].text="Robot: Soldering "+ str(round(float(self.print.queueindex) / len(self.print.mainqueue)*100,2))+"%"
+                else:
+                    self.ids["lbl_printer_status"].text="Robot: Soldering"
             elif self.print.online:
                 self.ids["lbl_printer_status"].text="Robot: Idle"
             else:
