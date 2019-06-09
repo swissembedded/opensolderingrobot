@@ -274,7 +274,7 @@ class ListScreen(Screen):
             self.printer_disconnect()
             self.printer_connect()
         except Exception as e:
-            print(e, "cam start")
+            print(e, "cam or printer start problem")
             pass
 
     def load_file(self):
@@ -293,6 +293,15 @@ class ListScreen(Screen):
             self.project_file_path =  os.path.expanduser(filename[0])
             self.project_data=data.read_project_data(self.project_file_path)
             self.paneldisselection=[]
+            try:
+                self.camera_disconnect()
+                self.camera_connect()
+                self.printer_disconnect()
+                self.printer_connect()
+            except Exception as e:
+                print(e, "cam or printer start problem")
+                pass
+
             self.ids["img_cad_origin"].set_cad_view(self.project_data)
             self.ids["img_cad_origin"].redraw_cad_view()
         except:
@@ -649,14 +658,16 @@ class ListScreen(Screen):
             self.print.cancelprint()
 
     def queue_printer_command(self, gcode):
-        ga=robotcontrol.make_array(gcode)
-        if not self.print.online or not self.print.printer:
-            print("Problem with printer")
-        if self.print.printing:
-            self.print.send(ga)
+        gcode = gcoder.LightGCode(robotcontrol.make_array(gcode))
+        if hasattr(self,'print') and self.print is not None:
+            if not self.print.online or not self.print.printer:
+                print("Problem with printer", self.print.online, self.print.printer)
+            if self.print.printing:
+                self.print.send(gcode)
+            else:
+                self.print.startprint(gcode)
         else:
-            self.print.startprint(ga)
-
+            print("Problem with printer interface")
     #### Connect menu
     def set_printer(self):
         ### Connect Menu /  Connect Printer
@@ -712,7 +723,6 @@ class ListScreen(Screen):
     def printer_connect(self):
         if self.print is None:
             self.print = printcore(self.project_data['Setup']['RobotPort'], 115200)
-        return self.print.online
 
     def printer_disconnect(self):
         if self.print is not None:
@@ -729,9 +739,12 @@ class ListScreen(Screen):
             self.ids["lbl_cam_status"].text="Camera: Connected"
         else:
             self.ids["lbl_cam_status"].text="Camera: Not Found"
+        #printer
         if hasattr(self,'print') and self.print is not None:
-            if self.print.printing:
-                self.ids["lbl_printer_status"].text="Robot: Printing "+ str(round(float(p.queueindex) / len(p.mainqueue)*100,2))+"%"
+            if self.print.printer is None:
+                self.ids["lbl_printer_status"].text="Robot: No 3d printer found"
+            elif self.print.printing:
+                self.ids["lbl_printer_status"].text="Robot: Printing "+ str(round(float(self.print.queueindex) / len(self.print.mainqueue)*100,2))+"%"
             elif self.print.online:
                 self.ids["lbl_printer_status"].text="Robot: Idle"
             else:
