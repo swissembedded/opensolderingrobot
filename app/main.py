@@ -269,7 +269,7 @@ class ListScreen(Screen):
         self.capture = None
         self.print = None
         self.robot_queue=[]
-
+        self.paneldisselection=[]
         try:
             self.camera_disconnect()
             self.camera_connect()
@@ -294,6 +294,7 @@ class ListScreen(Screen):
             ### if proper project file
             self.project_file_path =  filename[0]
             self.project_data=data.read_project_data(self.project_file_path)
+            self.paneldisselection=[]
             self.ids["img_cad_origin"].set_cad_view(self.project_data)
             self.ids["img_cad_origin"].redraw_cad_view()
         except:
@@ -591,22 +592,56 @@ class ListScreen(Screen):
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
         self.queue_printer_command(gcode)
 
+    def select_pcb_in_panel(self):
+        num=excellon.get_num_panel(self.project_data['Panel'])
+        content = EditPopup(save=self.save_pcb_in_panel, cancel=self.dismiss_popup)
+        content.ids["btn_connect"].text = "Save"
+        content.ids["text_port"].text = ""
+        self._popup = Popup(title="Select Panels to exclude from Soldering example \"1,2\"", content=content,
+                            size_hint=(0.5, 0.4))
+        self._popup.open()
+        self.project_data['CADMode']="None"
+
+    def save_pcb_in_panel(self, txt_port):
+        # set array of panels
+        excludepanels=txt_port.split(",")
+        panel=[]
+        for p in range(excellon.get_num_panel(self.project_data['Panel'])):
+            if str(p+1) in excludepanels:
+                panel.append(p)
+        self.paneldisselection=panel
+        self.dismiss_popup()
+
     def start_soldering(self):
         ### toolbar start soldering button
-        if self.ids["btn_start"].text == "Start Soldering":
-            self.ids["btn_start"].text = "Pause Soldering"
-            gcode=robotcontrol.panel_soldering(self.project_data, [0], False)
-            self.queue_printer_command(gcode)
-        elif self.ids["btn_start"].text == "Pause Soldering":
-            self.ids["btn_start"].text = "Resume Soldering"
-        elif self.ids["btn_start"].text == "Resume Soldering":
-            self.ids["btn_start"].text = "Pause Soldering"
+        # prepare panel
+        panel=[]
+        for p in range(excellon.get_num_panel(self.project_data['Panel'])):
+            if p not in self.paneldisselection:
+                panel.append(p)
+        # print
+        gcode=robotcontrol.panel_soldering(self.project_data, panel, False)
+        self.queue_printer_command(gcode)
 
     def test_soldering(self):
         ### toolbar test soldering button
-        gcode=robotcontrol.panel_soldering(self.project_data, [0], True)
+        # prepare panel
+        panel=[]
+        for p in range(excellon.get_num_panel(self.project_data['Panel'])):
+            if p not in self.paneldisselection:
+                panel.append(p)
+        # print
+        gcode=robotcontrol.panel_soldering(self.project_data, panel, True)
         self.queue_printer_command(gcode)
 
+    def pause_soldering(self):
+        ### toolbar pause soldering button
+        return
+
+    def resume_soldering(self):
+        ### toolbar resume soldering button
+        return
+        
     def stop_soldering(self):
         ### toolbar stop soldering button
         return

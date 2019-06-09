@@ -98,6 +98,9 @@
                         ActionButton:
                             text: 'Set Reference Points for Panel'
                             on_press: root.set_reference_panel()
+                        ActionButton:
+                            text: 'Select PCB from Panel'
+                            on_press: root.select_pcb_in_panel()
                     ActionGroup:
                         text: 'Connect'
                         size_hint_x: 0.15
@@ -115,9 +118,8 @@
             size_hint_y:0.03
             Label:
                 text:''
-                size_hint_x: 0.1
+                size_hint_x: 0.05
                 font_size:16
-
             Button:
                 id: btn_start
                 text:'Start Soldering'
@@ -129,20 +131,7 @@
                 on_press: root.start_soldering()
             Label:
                 text:''
-                size_hint_x: 0.1
-                font_size:16
-            Button:
-                id: btn_stop
-                text:'Stop Soldering'
-                size_hint: 0.2, None
-                height: 40
-                font_size:24
-                background_color: 208/255, 128/255, 34/255, 1
-                background_normal: ""
-                on_press: root.stop_soldering()
-            Label:
-                text:''
-                size_hint_x: 0.1
+                size_hint_x: 0.05
                 font_size:16
             Button:
                 id: btn_test
@@ -155,7 +144,46 @@
                 on_press: root.test_soldering()
             Label:
                 text:''
-                size_hint_x: 0.1
+                size_hint_x: 0.05
+                font_size:16
+            Button:
+                id: btn_pause
+                text:'Pause Soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+                on_press: root.pause_soldering()
+            Label:
+                text:''
+                size_hint_x: 0.05
+                font_size:16
+            Button:
+                id: btn_resume
+                text:'Resume Soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+                on_press: root.resume_soldering()
+            Label:
+                text:''
+                size_hint_x: 0.05
+                font_size:16
+            Button:
+                id: btn_stop
+                text:'Stop Soldering'
+                size_hint: 0.2, None
+                height: 40
+                font_size:24
+                background_color: 208/255, 128/255, 34/255, 1
+                background_normal: ""
+                on_press: root.stop_soldering()
+            Label:
+                text:''
+                size_hint_x: 0.05
                 font_size:16
 
         ####### body part ##########
