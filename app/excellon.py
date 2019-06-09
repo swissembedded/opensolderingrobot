@@ -70,7 +70,6 @@ def select_by_tool(soldertoolpath, tool, selectedsolderingprofile):
         tp=soldertoolpath[e]
         if soldertoolpath[e]['NCTool']==tool:
             soldertoolpath[e]['SolderingProfile']=selectedsolderingprofile
-            #print("selecintg", e,selectedsolderingprofile)
 
 # fill up data structure with soldering profile
 def convert_to_solderingprofile(data):

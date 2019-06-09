@@ -78,7 +78,6 @@ Config.set('graphics', 'height', MAX_SIZE[1])
 Config.set('graphics', 'resizable', False)
 
 #############################
-# TODO clean up
 screen = {"screen":"main"}
 real_img_size = {}
 bound_box = {}
@@ -181,7 +180,7 @@ class TouchImage(Image):
 
         xnc, ync = excellon.get_nc_tool_position(soldertoolpath,touchxp,touchyp,width*scale,height*scale)
         # out of image
-        print(touch.pos, self.pos, self.size, posxp, posyp, xnc, ync, xmin, xmax, ymin, ymax)
+        print("pos:", touch.pos, self.pos, self.size, posxp, posyp, "xnc ", xnc, "ync ", ync, xmin, xmax, ymin, ymax)
 
         if xnc < xmin or xnc > xmax or ync < ymin or ync > ymax:
             return
@@ -191,9 +190,9 @@ class TouchImage(Image):
         elif mode=="Deselect":
             excellon.deselect_by_position(soldertoolpath, xnc, ync)
         elif mode=="Ref1":
-            excellon.set_reference_1(soldertoolpath, xnc, xnc)
+            excellon.set_reference_1(soldertoolpath, xnc, ync)
         elif mode=="Ref2":
-            excellon.set_reference_2(soldertoolpath, xnc, xnc)
+            excellon.set_reference_2(soldertoolpath, xnc, ync)
         self.redraw_cad_view()
         return
 
@@ -291,7 +290,7 @@ class ListScreen(Screen):
         ### load all info from pre saved project file
         try:
             ### if proper project file
-            self.project_file_path =  filename[0]
+            self.project_file_path =  os.path.expanduser(filename[0])
             self.project_data=data.read_project_data(self.project_file_path)
             self.paneldisselection=[]
             self.ids["img_cad_origin"].set_cad_view(self.project_data)
@@ -320,7 +319,7 @@ class ListScreen(Screen):
 
     def save(self, path, filename):
         ### after click Save button of Save Dialog
-        self.project_file_path = os.path.join(path, filename)
+        self.project_file_path = os.path.expanduser(os.path.join(path, filename))
         print(path, filename, self.project_file_path)
         data.write_project_data(self.project_file_path, self.project_data)
         self.dismiss_popup()
@@ -340,7 +339,7 @@ class ListScreen(Screen):
         ### after click load button of Loading button
         try:
             ### if proper project file
-            nc_file_path  = filename[0]
+            nc_file_path  = os.path.expanduser(filename[0])
             ncdata=excellon.load_nc_drill(nc_file_path)
             print("ncdata", ncdata)
             # convert tool list for selection
@@ -413,7 +412,7 @@ class ListScreen(Screen):
         self.project_data['SelectedSolderingProfile']=num
         self.dismiss_popup()
         self.ids["img_cad_origin"].redraw_cad_view()
-
+        self.project_data['CADMode']="Select"
 
     def select_by_dia(self):
         ### Program Menu / Select soldering pad by diameter
@@ -491,9 +490,9 @@ class ListScreen(Screen):
         print("ref")
         self.ids["tab_panel"].switch_to(self.ids["tab_panel"].tab_list[0])
         self.content = ControlPopup(controlXYZ=self.control_XYZ, set_panel_ref1=self.set_panel_ref1, set_panel_ref2=self.set_panel_ref2, get_panel_ref1=self.get_panel_ref1, get_panel_ref2=self.get_panel_ref2, cancel=self.dismiss_popup)
-        self.content.ids["cur_X"].text = str(self.project_data['Setup']['TravelX'])
-        self.content.ids["cur_Y"].text = str(self.project_data['Setup']['TravelY'])
-        self.content.ids["cur_Z"].text = str(self.project_data['Setup']['TravelZ'])
+        self.content.ids["cur_X"].text = format(self.project_data['Setup']['TravelX'],".2f")
+        self.content.ids["cur_Y"].text = format(self.project_data['Setup']['TravelY'],".2f")
+        self.content.ids["cur_Z"].text = format(self.project_data['Setup']['TravelZ'],".2f")
         self.content.ids["cur_panel"].text = "1"
         self._popup = Popup(title="Set reference point", content=self.content,
                             size_hint=(0.4, 0.4))
@@ -534,9 +533,9 @@ class ListScreen(Screen):
         z=min(self.project_data['Setup']['MaxZ'],z)
 
         self.content.ids["cur_panel"].text = str(index)
-        self.content.ids["cur_X"].text = str(x)
-        self.content.ids["cur_Y"].text = str(y)
-        self.content.ids["cur_Z"].text = str(z)
+        self.content.ids["cur_X"].text = format(x,".2f")
+        self.content.ids["cur_Y"].text = format(y,".2f")
+        self.content.ids["cur_Z"].text = format(z,".2f")
 
         # go xyz printer
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
@@ -569,9 +568,9 @@ class ListScreen(Screen):
             x=self.project_data['Setup']['TravelX']
             y=self.project_data['Setup']['TravelY']
             z=self.project_data['Setup']['TravelZ']
-        self.content.ids["cur_X"].text = str(x)
-        self.content.ids["cur_Y"].text = str(y)
-        self.content.ids["cur_Z"].text = str(z)
+        self.content.ids["cur_X"].text = format(x,".2f")
+        self.content.ids["cur_Y"].text = format(y,".2f")
+        self.content.ids["cur_Z"].text = format(z,".2f")
         # go xyz printer
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
         self.queue_printer_command(gcode)
@@ -584,9 +583,9 @@ class ListScreen(Screen):
             x=self.project_data['Setup']['TravelX']
             y=self.project_data['Setup']['TravelY']
             z=self.project_data['Setup']['TravelZ']
-        self.content.ids["cur_X"].text = str(x)
-        self.content.ids["cur_Y"].text = str(y)
-        self.content.ids["cur_Z"].text = str(z)
+        self.content.ids["cur_X"].text = format(x,".2f")
+        self.content.ids["cur_Y"].text = format(y,".2f")
+        self.content.ids["cur_Z"].text = format(z,".2f")
         # go xyz printer
         gcode=robotcontrol.go_xyz(self.project_data,x,y,z)
         self.queue_printer_command(gcode)
@@ -698,7 +697,6 @@ class ListScreen(Screen):
         self.dismiss_popup()
 
     def dismiss_popup(self):
-        # TODO add pop too
         self._popup.dismiss()
 
     def camera_connect(self):
