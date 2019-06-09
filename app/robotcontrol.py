@@ -120,9 +120,10 @@ def panel_soldering(data, panelSelection, isTest):
                 gpos = complete_template(data['GSoldertest'], parameters)
             else:
                 gpos = complete_template(data['GSolder'], parameters)
-            gcode+=gpos
-        gcode += complete_template(data['GFooter'], {})
-        return gcode
+            gcode += gpos
+
+    gcode += complete_template(data['GFooter'], {})
+    return gcode
 
 def go_xyz(data, x,y,z):
     parameters = {

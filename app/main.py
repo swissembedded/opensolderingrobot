@@ -268,7 +268,6 @@ class ListScreen(Screen):
         self.ids["img_cad_origin"].redraw_cad_view()
         self.capture = None
         self.print = None
-        self.robot_queue=[]
         self.paneldisselection=[]
         try:
             self.camera_disconnect()
@@ -620,6 +619,7 @@ class ListScreen(Screen):
             if p not in self.paneldisselection:
                 panel.append(p)
         # print
+        print("panel", panel)
         gcode=robotcontrol.panel_soldering(self.project_data, panel, False)
         self.queue_printer_command(gcode)
 
@@ -636,15 +636,27 @@ class ListScreen(Screen):
 
     def pause_soldering(self):
         ### toolbar pause soldering button
-        return
+        if self.print.printing:
+            self.print.pause()
 
     def resume_soldering(self):
         ### toolbar resume soldering button
-        return
-        
+        if self.print.printing:
+            self.print.resume()
+
     def stop_soldering(self):
         ### toolbar stop soldering button
-        return
+        if self.print.printing:
+            self.print.cancelprint()
+
+    def queue_printer_command(self, gcode):
+        ga=robotcontrol.make_array(gcode)
+        if not self.print.online or not self.print.printer:
+            print("Problem with printer")
+        if self.print.printing:
+            self.print.send(ga)
+        else:
+            self.print.startprint(ga)
 
     #### Connect menu
     def set_printer(self):
@@ -685,10 +697,6 @@ class ListScreen(Screen):
             pass
         self.dismiss_popup()
 
-    def queue_printer_command(self, gcode):
-        ga=robotcontrol.make_array(gcode)
-        self.robot_queue.append(ga)
-
     def dismiss_popup(self):
         # TODO add pop too
         self._popup.dismiss()
@@ -706,7 +714,6 @@ class ListScreen(Screen):
     def printer_connect(self):
         if self.print is None:
             self.print = printcore(self.project_data['Setup']['RobotPort'], 115200)
-            self.robot_queue=[]
         return self.print.online
 
     def printer_disconnect(self):
@@ -724,12 +731,16 @@ class ListScreen(Screen):
             self.ids["lbl_cam_status"].text="Camera: Connected"
         else:
             self.ids["lbl_cam_status"].text="Camera: Not Found"
-        if hasattr(self,'print') and self.print is not None and self.print.online:
-            self.ids["lbl_printer_status"].text="Robot: Connected"
+        if hasattr(self,'print') and self.print is not None:
+            if self.print.printing:
+                self.ids["lbl_printer_status"].text="Robot: Printing "+ str(round(float(p.queueindex) / len(p.mainqueue)*100,2))+"%"
+            elif self.print.online:
+                self.ids["lbl_printer_status"].text="Robot: Idle"
+            else:
+                self.ids["lbl_printer_status"].text="Robot: Connected"
         else:
             self.ids["lbl_printer_status"].text="Robot: Not Found"
 
-        return
 
 ### Application
 class MyApp(App):
