@@ -504,7 +504,7 @@ class ListScreen(Screen):
         self.content.ids["cur_Z"].text = format(self.project_data['Setup']['TravelZ'],".2f")
         self.content.ids["cur_panel"].text = "1"
         self._popup = Popup(title="Set reference point", content=self.content,
-                            size_hint=(0.4, 0.4))
+                            size_hint=(0.4, 0.4), background_color=[0, 0, 0, 0.0])
         self._popup.pos_hint={"center_x": .8, "center_y": .8}
         self._popup.open()
         self.project_data['CADMode']="None"
